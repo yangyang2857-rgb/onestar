@@ -1,0 +1,45 @@
+# 构建产物
+build/
+*.apk
+*.aab
+*.idsig
+gen/
+classes/
+dexout/
+lib/
+sources.txt
+classes.txt
+compiled.zip
+unsigned.apk
+aligned.apk
+
+# 签名材料（绝对不要提交）
+*.keystore
+*.jks
+*.p12
+*.pepk
+keystore.properties
+signing.properties
+口令.txt
+
+# 本地配置
+local.properties
+.gradle/
+.idea/
+*.iml
+captures/
+.externalNativeBuild/
+.cxx/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+
+# 系统垃圾
+.DS_Store
+Thumbs.db
+
+# 预览生成的临时图
+preview/*.png
+docs/tmp/

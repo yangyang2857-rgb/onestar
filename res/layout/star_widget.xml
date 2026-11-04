@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/w_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/widget_bg"
+    android:orientation="vertical"
+    android:gravity="center_vertical"
+    android:paddingLeft="18dp"
+    android:paddingRight="18dp"
+    android:paddingTop="14dp"
+    android:paddingBottom="14dp">
+
+    <TextView
+        android:id="@+id/w_hint"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="拾光 · 待点亮"
+        android:textColor="#8A97BD"
+        android:textSize="10sp"
+        android:letterSpacing="0.12" />
+
+    <TextView
+        android:id="@+id/w_line1"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="6dp"
+        android:text="今天还没点亮"
+        android:textColor="#EEF3FF"
+        android:textSize="17sp"
+        android:textStyle="bold" />
+
+    <TextView
+        android:id="@+id/w_line2"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:text="轻触，放一颗进夜空"
+        android:textColor="#FFF0D0"
+        android:textSize="11sp" />
+</LinearLayout>
