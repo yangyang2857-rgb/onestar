@@ -2,6 +2,11 @@
 
 版本号与 `AndroidManifest.xml` 中的 `versionName` 一致；括号内为 `versionCode`。
 
+## v3.0 (5)
+
+- 星月琴：加入旋律提示音 `Melody` 与节拍驱动
+- 新增 `MelodyTest`
+
 ## v2.1 (4)
 
 - 星语：长按星点显示当日星语，新增 `StarName` 生成规则
