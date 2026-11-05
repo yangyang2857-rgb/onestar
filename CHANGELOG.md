@@ -2,6 +2,11 @@
 
 版本号与 `AndroidManifest.xml` 中的 `versionName` 一致；括号内为 `versionCode`。
 
+## v4.0 (6)
+
+- 星轨回放：按时间轴重播一段时间内的记录，新增 `Replay` 与曲线取样
+- 新增 `V4LogicTest`（59 项断言）
+
 ## v3.0 (5)
 
 - 星月琴：加入旋律提示音 `Melody` 与节拍驱动
