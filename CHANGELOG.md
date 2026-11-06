@@ -2,6 +2,10 @@
 
 版本号与 `AndroidManifest.xml` 中的 `versionName` 一致；括号内为 `versionCode`。
 
+## v4.3 (9)
+
+- 柔光玻璃效果的边缘修复
+
 ## v4.2 (8)
 
 - 柔光玻璃视觉：卡片改为半透明层叠，图标重绘为柔光玻璃风格
