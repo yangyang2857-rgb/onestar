@@ -2,6 +2,10 @@
 
 版本号与 `AndroidManifest.xml` 中的 `versionName` 一致；括号内为 `versionCode`。
 
+## v4.4 (10)
+
+- 去除绘制残留白线
+
 ## v4.3 (9)
 
 - 柔光玻璃效果的边缘修复
