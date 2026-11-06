@@ -2,6 +2,10 @@
 
 版本号与 `AndroidManifest.xml` 中的 `versionName` 一致；括号内为 `versionCode`。
 
+## v4.1 (7)
+
+- 星芒焕新：星点绘制改为多层星芒，图标重做
+
 ## v4.0 (6)
 
 - 星轨回放：按时间轴重播一段时间内的记录，新增 `Replay` 与曲线取样
