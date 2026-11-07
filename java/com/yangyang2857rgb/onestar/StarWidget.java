@@ -61,6 +61,16 @@ public class StarWidget extends AppWidgetProvider {
     }
 
     @Override
+    public void onReceive(Context ctx, Intent intent) {
+        super.onReceive(ctx, intent);
+        // 用户在设置里换了系统语言：系统会广播 LOCALE_CHANGED，重判语言并重画小组件。
+        if (intent != null && Intent.ACTION_LOCALE_CHANGED.equals(intent.getAction())) {
+            I18n.refresh();
+            refresh(ctx);
+        }
+    }
+
+    @Override
     public void onUpdate(Context ctx, AppWidgetManager mgr, int[] ids) {
         for (int id : ids) update(ctx, mgr, id);
     }

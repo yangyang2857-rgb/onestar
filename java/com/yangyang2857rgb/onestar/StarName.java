@@ -42,10 +42,13 @@ final class StarName {
     static String fallback(int index, int moodIdx) {
         String word = "";
         if (moodIdx >= 0 && moodIdx < Constellation.MOOD_WORD.length) {
-            word = Constellation.MOOD_WORD[moodIdx];
+            word = Constellation.moodWord(moodIdx);
         }
-        if (index <= 0) return word.length() == 0 ? "某颗星" : "某颗星 · " + word;
-        String ord = "第 " + index + " 颗";
+        if (index <= 0) {
+            String any = I18n.t("某颗星", "A star");
+            return word.length() == 0 ? any : any + " · " + word;
+        }
+        String ord = I18n.nth(index);
         return word.length() == 0 ? ord : ord + " · " + word;
     }
 

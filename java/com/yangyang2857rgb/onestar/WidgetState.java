@@ -44,18 +44,24 @@ final class WidgetState {
 
     /** 小组件第一行文案。 */
     static String line1(String raw, String today, int total) {
-        return litToday(raw, today) ? "第 " + total + " 颗星" : "今天还没点亮";
+        return litToday(raw, today)
+                ? I18n.f("第 %d 颗星", "Star #%d", total)
+                : I18n.t("今天还没点亮", "Not lit yet");
     }
 
     /** 小组件第二行文案。 */
     static String line2(String raw, String today, int total) {
-        if (!litToday(raw, today)) return "轻触，放一颗进夜空";
-        if (total <= 1) return "这是你的第一颗";
-        return "已经认真过了 " + total + " 天";
+        if (!litToday(raw, today)) {
+            return I18n.t("轻触，放一颗进夜空", "Tap to put one in the sky");
+        }
+        if (total <= 1) return I18n.t("这是你的第一颗", "Your very first one");
+        return I18n.f("已经认真过了 %d 天", "%d days, all lived", total);
     }
 
     /** 小组件角落的小字。 */
     static String hint(String raw, String today) {
-        return "拾光 · " + (litToday(raw, today) ? "今日已亮" : "待点亮");
+        boolean lit = litToday(raw, today);
+        return I18n.t("拾光 · ", "OneStar · ")
+                + (lit ? I18n.t("今日已亮", "Lit today") : I18n.t("待点亮", "Not yet"));
     }
 }

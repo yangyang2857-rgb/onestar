@@ -70,7 +70,7 @@ final class PosterRenderer {
             return null;
         }
 
-        String fileName = "拾光_" + today + ".jpg";
+        String fileName = I18n.t("拾光_", "OneStar_") + today + ".jpg";
         try {
             String path = save(ctx, out, fileName);
             out.recycle();
@@ -87,14 +87,16 @@ final class PosterRenderer {
             ContentValues v = new ContentValues();
             v.put(MediaStore.Images.Media.DISPLAY_NAME, fileName);
             v.put(MediaStore.Images.Media.MIME_TYPE, "image/jpeg");
-            v.put(MediaStore.Images.Media.RELATIVE_PATH, Environment.DIRECTORY_PICTURES + "/拾光");
+            v.put(MediaStore.Images.Media.RELATIVE_PATH, Environment.DIRECTORY_PICTURES + "/"
+                    + I18n.t("拾光", "OneStar"));
             Uri uri = cr.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, v);
             if (uri != null) {
                 OutputStream os = cr.openOutputStream(uri);
                 if (os != null) {
                     bmp.compress(Bitmap.CompressFormat.JPEG, 94, os);
                     os.close();
-                    return Environment.DIRECTORY_PICTURES + "/拾光/" + fileName;
+                    return Environment.DIRECTORY_PICTURES + "/" + I18n.t("拾光", "OneStar")
+                            + "/" + fileName;
                 }
             }
         }
@@ -144,7 +146,7 @@ final class PosterRenderer {
         p.setTypeface(Typeface.DEFAULT_BOLD);
         p.setTextSize(74);
         p.setColor(C_TEXT);
-        c.drawText("拾光", 86, 178, p);
+        c.drawText(I18n.t("拾光", "OneStar"), 86, 178, p);
         p.setTypeface(Typeface.DEFAULT);
         p.setTextSize(24);
         p.setColor(C_DIM);
@@ -155,7 +157,7 @@ final class PosterRenderer {
         p.setTextAlign(Paint.Align.RIGHT);
         p.setTextSize(30);
         p.setColor(C_WARM);
-        c.drawText(year + " 年度星图", W - 86, 168, p);
+        c.drawText(I18n.f("%d 年度星图", "%d — Year in Stars", year), W - 86, 168, p);
         p.setTextSize(22);
         p.setColor(C_DIM);
         c.drawText(today.replace("-", " · "), W - 86, 214, p);
@@ -169,10 +171,12 @@ final class PosterRenderer {
         p.setTypeface(Typeface.DEFAULT);
         p.setTextSize(26);
         p.setColor(C_DIM);
-        c.drawText("颗星", 86 + 232, 360, p);
+        c.drawText(I18n.t("颗星", "stars"), 86 + 232, 360, p);
         p.setTextSize(24);
-        c.drawText("最长连续 " + streak + " 天    ·    陪伴 " + span + " 天    ·    最常 "
-                + Constellation.MOOD_NAME[Constellation.dominantMood(days, mood)], 88, 424, p);
+        c.drawText(I18n.f("最长连续 %d 天    ·    陪伴 %d 天    ·    最常 %s",
+                "Longest streak %d days    ·    %d days together    ·    mostly %s",
+                streak, span, Constellation.moodName(Constellation.dominantMood(days, mood))),
+                88, 424, p);
 
         // 星图穹顶
         RectF sky = new RectF(86, 476, W - 86, 1240);
@@ -259,7 +263,8 @@ final class PosterRenderer {
             p.setAlpha(190);
             p.setTextSize(20);
             p.setColor(C_WARM);
-            c.drawText("虚线圈＝补记 " + back.size() + " 天", lx + 16, ly + 7, p);
+            c.drawText(I18n.f("虚线圈＝补记 %d 天", "Dashed = backfilled, %d days", back.size()),
+                    lx + 16, ly + 7, p);
             p.setAlpha(255);
         }
 
@@ -267,7 +272,9 @@ final class PosterRenderer {
         p.setTextSize(22);
         p.setColor(C_DIM);
         p.setLetterSpacing(0.2f);
-        c.drawText("这 " + span + " 天里，你一共亮起 " + total + " 次", sky.left + 40, sky.top + 52, p);
+        c.drawText(I18n.f("这 %d 天里，你一共亮起 %d 次",
+                "You lit a star %2$d times across %1$d days", span, total),
+                sky.left + 40, sky.top + 52, p);
         p.setLetterSpacing(0f);
 
         // 12 个月柱
@@ -281,7 +288,7 @@ final class PosterRenderer {
         float baseY = chartTop + chartH;
         p.setTextSize(22);
         p.setColor(C_DIM);
-        c.drawText(year + " 年星盘", 86, chartTop - 24, p);
+        c.drawText(I18n.f("%d 年星盘", "%d sky chart", year), 86, chartTop - 24, p);
         for (int i = 0; i < 12; i++) {
             float bx = 86 + i * (bw + gap);
             p.setColor(0x14FFFFFF);
@@ -310,7 +317,7 @@ final class PosterRenderer {
         float[] series = MoodCurve.weekly(days, mood, today, 6);
         p.setTextSize(22);
         p.setColor(C_DIM);
-        c.drawText("近六周心情曲线", 86, curveTop - 22, p);
+        c.drawText(I18n.t("近六周心情曲线", "Mood, last six weeks"), 86, curveTop - 22, p);
         p.setTextAlign(Paint.Align.RIGHT);
         p.setColor(C_WARM);
         c.drawText(MoodCurve.caption(series), W - 86, curveTop - 22, p);
@@ -355,7 +362,7 @@ final class PosterRenderer {
         float ny = 1990;
         p.setTextSize(22);
         p.setColor(C_DIM);
-        c.drawText("有名字的星星", 86, ny - 30, p);
+        c.drawText(I18n.t("有名字的星星", "Named stars"), 86, ny - 30, p);
         int shown = 0;
         for (int i = 0; i < days.size() && shown < 4; i++) {
             String d = days.get(i);
@@ -367,11 +374,14 @@ final class PosterRenderer {
             c.drawCircle(92, ny - 8 - shown * 40, 5f, p);
             p.setColor(C_TEXT);
             p.setTextSize(24);
-            c.drawText("「" + nm + "」", 112, ny - shown * 40, p);
+            c.drawText(I18n.t("「" + nm + "」", "\u201C" + nm + "\u201D"), 112, ny - shown * 40, p);
             p.setColor(C_DIM);
             p.setTextSize(20);
             p.setTextAlign(Paint.Align.RIGHT);
-            c.drawText(d.substring(5).replace("-", "/") + "  " + Constellation.MOOD_NAME[mm],
+            c.drawText(I18n.en()
+                            ? I18n.date(Integer.parseInt(d.substring(5, 7)),
+                            Integer.parseInt(d.substring(8, 10))) + "  " + Constellation.moodName(mm)
+                            : d.substring(5).replace("-", "/") + "  " + Constellation.moodName(mm),
                     W - 86, ny - shown * 40, p);
             p.setTextAlign(Paint.Align.LEFT);
             shown++;
@@ -379,17 +389,20 @@ final class PosterRenderer {
         if (shown == 0) {
             p.setColor(C_DIM);
             p.setTextSize(22);
-            c.drawText("还没有给任何一颗星起名 · 长按星星可以起名", 86, ny, p);
+            c.drawText(I18n.t("还没有给任何一颗星起名 · 长按星星可以起名",
+                    "No named stars yet · long-press a star to name it"), 86, ny, p);
         }
 
         // 页脚
         p.setTextSize(24);
         p.setColor(C_DIM);
         p.setTextAlign(Paint.Align.CENTER);
-        c.drawText("每一颗，都是你认真过的一天", W / 2f, H - 96, p);
+        c.drawText(I18n.t("每一颗，都是你认真过的一天",
+                "Every star is a day you truly lived"), W / 2f, H - 96, p);
         p.setTextSize(18);
         p.setColor(0x668A97BD);
-        c.drawText("拾光 v4.0 · 星轨回放 · 生成于 " + today, W / 2f, H - 56, p);
+        c.drawText(I18n.f("拾光 v4.0 · 星轨回放 · 生成于 %s",
+                "OneStar v4.0 · Star replay · generated %s", today), W / 2f, H - 56, p);
         p.setTextAlign(Paint.Align.LEFT);
         p.setColor(Color.WHITE);
     }

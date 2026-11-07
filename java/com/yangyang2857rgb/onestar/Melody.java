@@ -39,6 +39,6 @@ public final class Melody {
     }
 
     public static String monthName(int idx) {
-        return (idx >= 0 && idx < 12) ? MONTH_CN[idx] : "";
+        return (idx >= 0 && idx < 12) ? I18n.month(idx + 1) : "";
     }
 }

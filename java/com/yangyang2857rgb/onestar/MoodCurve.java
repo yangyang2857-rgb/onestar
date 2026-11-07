@@ -91,13 +91,13 @@ final class MoodCurve {
                 n++;
             }
         }
-        if (n == 0) return "这六周，还没有颜色";
+        if (n == 0) return I18n.t("这六周，还没有颜色", "Six weeks, no color yet");
         float avg = sum / n;
-        if (avg >= 0.82f) return "这六周，偏炽烈";
-        if (avg >= 0.68f) return "这六周，偏亮";
-        if (avg >= 0.48f) return "这六周，平稳";
-        if (avg >= 0.30f) return "这六周，偏静";
-        return "这六周，偏低落";
+        if (avg >= 0.82f) return I18n.t("这六周，偏炽烈", "Six weeks, mostly fierce");
+        if (avg >= 0.68f) return I18n.t("这六周，偏亮", "Six weeks, mostly bright");
+        if (avg >= 0.48f) return I18n.t("这六周，平稳", "Six weeks, steady");
+        if (avg >= 0.30f) return I18n.t("这六周，偏静", "Six weeks, mostly quiet");
+        return I18n.t("这六周，偏低落", "Six weeks, mostly low");
     }
 
     /** 六周前那天的日期（用于横轴标注）。 */

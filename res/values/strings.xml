@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  拾光 v6.5：只有「系统层面」的文字才需要走资源表。
+  App 内所有 Canvas 手绘文案都在 I18n.java（中文原文 + 英文对照），因为它们是拼接句，
+  拆成占位符反而更难维护；而桌面图标名、小组件标题、无障碍描述由系统读取，
+  只能由资源表提供，所以这里单独留一份。
+-->
+<resources>
+    <string name="app_name">拾光</string>
+    <string name="widget_label">拾光 · 今日星</string>
+    <string name="widget_desc">桌面上的一颗星，轻触就能点亮今天</string>
+    <string name="widget_hint">拾光 · 待点亮</string>
+    <string name="widget_line1">今天还没点亮</string>
+    <string name="widget_line2">轻触，放一颗进夜空</string>
+</resources>

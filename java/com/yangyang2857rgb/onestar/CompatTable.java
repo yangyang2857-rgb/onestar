@@ -49,28 +49,32 @@ public final class CompatTable {
      * 「设备页大小（运行时实测）+ 原生库对齐情况（编译期事实）」两件事。
      */
     public static String pageNote(int bytes, boolean nativeAligned) {
-        String device = is16k(bytes) ? "16 KB 页" : "4 KB 页";
-        if (nativeAligned) return device + " · 原生库已按 16 KB 对齐";
-        return device + " · 无原生库 · 天然兼容";
+        String device = is16k(bytes)
+                ? I18n.t("16 KB 页", "16 KB page")
+                : I18n.t("4 KB 页", "4 KB page");
+        if (nativeAligned) {
+            return device + I18n.t(" · 原生库已按 16 KB 对齐", " · native libs aligned");
+        }
+        return device + I18n.t(" · 无原生库 · 天然兼容", " · no native libs");
     }
 
     /** 只给兼容性结论，页大小由右侧数值列单独展示，避免同一行里说两遍。 */
     public static String pageCompat(boolean nativeLoaded) {
-        if (nativeLoaded) return "原生库已按 16 KB 对齐";
-        return "无原生库 · 天然兼容";
+        if (nativeLoaded) return I18n.t("原生库已按 16 KB 对齐", "Native libs aligned to 16 KB");
+        return I18n.t("无原生库 · 天然兼容", "No native libs, compatible by design");
     }
 
     /** 内存让位状态：0 标准 / 1 已让位 / 2 深度让位。 */
     public static String memBadge(int trimLevel) {
-        if (trimLevel >= 2) return "深度让位";
-        if (trimLevel == 1) return "已让位";
-        return "标准档";
+        if (trimLevel >= 2) return I18n.t("深度让位", "Deep trim");
+        if (trimLevel == 1) return I18n.t("已让位", "Trimmed");
+        return I18n.t("标准档", "Standard");
     }
 
     public static String memNote(boolean lowRam, int trimLevel) {
-        if (lowRam) return "低内存机 · 已自动降载";
-        if (trimLevel > 0) return "系统回收 · 已让位";
-        return "标准档 · 可主动让位";
+        if (lowRam) return I18n.t("低内存机 · 已自动降载", "Low-RAM device · auto reduced");
+        if (trimLevel > 0) return I18n.t("系统回收 · 已让位", "Reclaimed by system · yielded");
+        return I18n.t("标准档 · 可主动让位", "Standard · may yield on demand");
     }
 
     /** 历代刻度：SDK 与显示名成对返回，用于时间轴。 */

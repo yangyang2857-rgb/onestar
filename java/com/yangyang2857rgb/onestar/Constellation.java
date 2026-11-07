@@ -19,6 +19,8 @@ final class Constellation {
 
     static final String[] MOOD_NAME = {"静谧", "雀跃", "温柔", "低落", "炽烈"};
     static final String[] MOOD_WORD = {"长夜", "跃光", "絮语", "潮汐", "余烬"};
+    static final String[] MOOD_NAME_EN = {"Still", "Bright", "Soft", "Low", "Fierce"};
+    static final String[] MOOD_WORD_EN = {"Nightfall", "Leap", "Whisper", "Tide", "Ember"};
 
     /** 星色（ARGB）。5 种心情各自的星点色与光晕色。 */
     static final int[] MOOD_COLOR = {
@@ -38,6 +40,18 @@ final class Constellation {
     private Constellation() {
     }
 
+    /** 心情名：静谧 / Still */
+    static String moodName(int i) {
+        if (i < 0 || i >= MOOD_N) i = 0;
+        return I18n.en() ? MOOD_NAME_EN[i] : MOOD_NAME[i];
+    }
+
+    /** 心情词（星座名后缀）：长夜 / Nightfall */
+    static String moodWord(int i) {
+        if (i < 0 || i >= MOOD_N) i = 0;
+        return I18n.en() ? MOOD_WORD_EN[i] : MOOD_WORD[i];
+    }
+
     /** "2026-11-04" -> "2026-11" */
     static String monthKey(String date) {
         if (date == null || date.length() < 7) return "";
@@ -55,9 +69,7 @@ final class Constellation {
 
     /** "2026-11" -> "十一月" */
     static String monthName(String monthKey) {
-        int m = monthOf(monthKey + "-01");
-        if (m < 1 || m > 12) return "";
-        return MONTH_CN[m - 1];
+        return I18n.month(monthOf(monthKey + "-01"));
     }
 
     /** 某月内的日期列表（保持入参顺序，调用方已排序） */
@@ -87,6 +99,7 @@ final class Constellation {
     /** 星数 -> 中文数词："二" "三" … 九以上用"群" */
     static String numCn(int n) {
         if (n <= 0) return "";
+        if (I18n.en()) return n >= 10 ? "Many" : String.valueOf(n);
         if (n < NUM_CN.length) return NUM_CN[n];
         return "群";
     }
@@ -101,11 +114,19 @@ final class Constellation {
         int n = monthDays.size();
         if (n == 0) return "";
         int dm = dominantMood(monthDays, mood);
+        if (I18n.en()) {
+            String size;
+            if (n == 1) size = "Lone ";
+            else if (n == 2) size = "Twin ";
+            else if (n >= 10) size = "Many-Star ";
+            else size = n + "-Star ";
+            return mn + " · " + size + moodWord(dm);
+        }
         String num;
         if (n == 2) num = "双星";
         else if (n == 1) num = "孤星";
         else num = numCn(n) + "星";
-        return mn + " · " + num + MOOD_WORD[dm];
+        return mn + " · " + num + moodWord(dm);
     }
 
     /** 该年 12 个月的点亮数（长度 12，索引 0=1 月） */
@@ -161,23 +182,43 @@ final class Constellation {
 
     /** 星语：一句由数据决定的话，同一数据永远同一句。 */
     static String verse(List<String> days, Map<String, Integer> mood, int total, int streak, int spanDays) {
-        if (total == 0) return "夜空还没开始，第一颗星等你来点";
+        if (total == 0) {
+            return I18n.t("夜空还没开始，第一颗星等你来点",
+                    "The sky is still empty. Your first star is waiting.");
+        }
         int dm = dominantMood(days, mood);
-        if (streak >= 14) return "连续 " + streak + " 天，你的夜空已经不缺光";
-        if (streak >= 7) return "连着 " + streak + " 天，银河都记住你了";
-        if (total == 1) return "第一颗星落下了，故事从这里开始";
-        if (spanDays > 0 && total >= spanDays * 0.8f) return "陪伴 " + spanDays + " 天，几乎每一天都有光";
+        if (streak >= 14) {
+            return I18n.f("连续 %d 天，你的夜空已经不缺光",
+                    "%d days in a row — your sky is never short of light.", streak);
+        }
+        if (streak >= 7) {
+            return I18n.f("连着 %d 天，银河都记住你了",
+                    "%d days running. Even the galaxy remembers you.", streak);
+        }
+        if (total == 1) {
+            return I18n.t("第一颗星落下了，故事从这里开始",
+                    "The first star has landed. The story starts here.");
+        }
+        if (spanDays > 0 && total >= spanDays * 0.8f) {
+            return I18n.f("陪伴 %d 天，几乎每一天都有光",
+                    "%d days together, and almost every one of them lit.", spanDays);
+        }
         switch (dm) {
             case 0:
-                return "多数夜晚是静的，你把它留给了自己";
+                return I18n.t("多数夜晚是静的，你把它留给了自己",
+                        "Most nights were quiet, and you kept them for yourself.");
             case 1:
-                return "你的天空亮得偏暖，多半是好日子";
+                return I18n.t("你的天空亮得偏暖，多半是好日子",
+                        "Your sky runs warm, which usually means good days.");
             case 2:
-                return "温柔的颜色最多，像有人在替你收着心事";
+                return I18n.t("温柔的颜色最多，像有人在替你收着心事",
+                        "Soft colors dominate, as if someone is holding your worries.");
             case 3:
-                return "低落也有自己的光，它只是暗一点";
+                return I18n.t("低落也有自己的光，它只是暗一点",
+                        "Low days have their own light. It is just dimmer.");
             default:
-                return "炽烈的那几天，星星都烧得更亮";
+                return I18n.t("炽烈的那几天，星星都烧得更亮",
+                        "On the fierce days, the stars burned brighter.");
         }
     }
 

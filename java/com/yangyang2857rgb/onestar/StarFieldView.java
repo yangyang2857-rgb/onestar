@@ -645,18 +645,18 @@ public class StarFieldView extends View {
         p.setAlpha(255);
 
         // 顶部标题
-        textCenter(c, "星 轨 回 放", W / 2f, padT + 24 * dp, 12.5f, C_TEXT, 215, 3.0f);
+        textCenter(c, I18n.t("星 轨 回 放", "R E P L A Y"), W / 2f, padT + 24 * dp, 12.5f, C_TEXT, 215, 3.0f);
         int cur = Replay.indexAt(replayProg, n);
         if (cur >= 0 && cur < starDates.size()) {
             textCenter(c, Replay.caption(starDates.get(cur)), W / 2f, padT + 52 * dp, 17, C_WARM, 235, 1.6f);
             Integer mv = mood.get(starDates.get(cur));
             int mm = mv == null ? 0 : mv;
-            textCenter(c, "第 " + (cur + 1) + " 颗 · " + Constellation.MOOD_NAME[mm], W / 2f,
+            textCenter(c, I18n.f("第 %d 颗 · %s", "#%d · %s", cur + 1, Constellation.moodName(mm)), W / 2f,
                     padT + 74 * dp, 10.5f, Constellation.MOOD_COLOR[mm], 200, 1.0f);
         }
 
         if (replayProg >= 1f) {
-            textCenter(c, "共 " + n + " 颗星 · 跨越 " + spanDays + " 天", W / 2f,
+            textCenter(c, I18n.f("共 %d 颗星 · 跨越 %d 天", "%d stars · %d days apart", n, spanDays), W / 2f,
                     padT + 96 * dp, 10.5f, C_DIM, 195, 1.3f);
         }
 
@@ -684,7 +684,9 @@ public class StarFieldView extends View {
 
         text(c, Replay.caption(starDates.get(0)), barL, barY + 22 * dp, 8.5f, C_DIM, 120, 0.3f, false);
         textRight(c, Replay.caption(starDates.get(starDates.size() - 1)), barR, barY + 22 * dp, 8.5f, C_DIM, 120);
-        textCenter(c, replayProg >= 1f ? "走完了 · 轻触空白再看一遍" : "拖动进度 · 轻触空白退出",
+        textCenter(c, replayProg >= 1f
+                        ? I18n.t("走完了 · 轻触空白再看一遍", "That's all · tap blank to replay")
+                        : I18n.t("拖动进度 · 轻触空白退出", "Drag to scrub · tap blank to exit"),
                 W / 2f, H - padB - 24 * dp, 9.5f, C_DIM, 110, 0.6f);
     }
 
@@ -994,19 +996,22 @@ public class StarFieldView extends View {
     private void drawHud(Canvas c, long now) {
         if (!land) {
             text(c, "ONE STAR A DAY", padL, padT - 12 * dp, 9.5f, C_DIM, 150, 3.4f, false);
-            text(c, "拾光", padL, padT + 14 * dp, 21, C_TEXT, 235, 1.2f, true);
-            text(c, "星穹", padL + 52 * dp, padT + 14 * dp, 10, C_DIM, 120, 2.2f, false);
+            text(c, I18n.t("拾光", "OneStar"), padL, padT + 14 * dp, 21, C_TEXT, 235, 1.2f, true);
+            text(c, I18n.t("星穹", "NIGHT SKY"), padL + (I18n.en() ? 86 * dp : 52 * dp),
+                    padT + 14 * dp, 10, C_DIM, 120, 2.2f, false);
             hairline(c, padT + 26 * dp, 56 * dp);
 
             String line1, line2, hint;
             if (litToday) {
-                line1 = "第 " + total + " 颗星";
-                line2 = Constellation.MOOD_NAME[todayMood()] + "的一天 · " + today;
-                hint = "已经亮着 " + streak + " 天 · 摇一摇回到过去";
+                line1 = I18n.f("第 %d 颗星", "Star #%d", total);
+                line2 = I18n.f("%s的一天 · %s", "A %s day · %s",
+                        Constellation.moodName(todayMood()), today);
+                hint = I18n.f("已经亮着 %d 天 · 摇一摇回到过去",
+                        "Lit for %d days · shake to go back", streak);
             } else {
-                line1 = "轻触夜空";
-                line2 = "选一种颜色，点亮今天";
-                hint = "心情会变成星的颜色";
+                line1 = I18n.t("轻触夜空", "Tap the sky");
+                line2 = I18n.t("选一种颜色，点亮今天", "Pick a color to light today");
+                hint = I18n.t("心情会变成星的颜色", "Your mood becomes the star's color");
             }
             float baseY = H - padB - 46 * dp;
             text(c, line1, padL, baseY, 17.5f, C_TEXT, 235, 0.6f, false);
@@ -1015,8 +1020,9 @@ public class StarFieldView extends View {
 
         } else {
             text(c, "ONE STAR A DAY", padL, padT - 12 * dp, 9.5f, C_DIM, 150, 3.4f, false);
-            text(c, "拾光", padL, padT + 16 * dp, 23, C_TEXT, 238, 1.2f, true);
-            text(c, "星穹", padL + 54 * dp, padT + 16 * dp, 10, C_DIM, 120, 2.2f, false);
+            text(c, I18n.t("拾光", "OneStar"), padL, padT + 16 * dp, 23, C_TEXT, 238, 1.2f, true);
+            text(c, I18n.t("星穹", "NIGHT SKY"), padL + (I18n.en() ? 92 * dp : 54 * dp),
+                    padT + 16 * dp, 10, C_DIM, 120, 2.2f, false);
             hairline(c, padT + 29 * dp, 58 * dp);
 
             float y = padT + 72 * dp;
@@ -1028,14 +1034,17 @@ public class StarFieldView extends View {
             c.drawText(String.valueOf(total), padL, y, p);
             float nw = p.measureText(String.valueOf(total));
             p.setTypeface(android.graphics.Typeface.DEFAULT);
-            text(c, "颗星", padL + nw + 8 * dp, y - 4 * dp, 13, C_DIM, 190, 0.8f, false);
+            text(c, I18n.t("颗星", "stars"), padL + nw + 8 * dp, y - 4 * dp, 13, C_DIM, 190, 0.8f, false);
 
             y += 30 * dp;
-            text(c, litToday ? "今天已点亮 · " + Constellation.MOOD_NAME[todayMood()] : "今天还未点亮",
+            text(c, litToday
+                        ? I18n.f("今天已点亮 · %s", "Lit today · %s", Constellation.moodName(todayMood()))
+                        : I18n.t("今天还未点亮", "Not lit yet today"),
                     padL, y, 12.5f, litToday ? Constellation.MOOD_COLOR[todayMood()] : C_DIM,
                     litToday ? 235 : 170, 0.6f, false);
             y += 22 * dp;
-            text(c, "连续 " + streak + " 天 · 陪伴 " + spanDays + " 天", padL, y, 11.5f, C_DIM, 150, 0.4f, false);
+            text(c, I18n.f("连续 %d 天 · 陪伴 %d 天", "%d-day streak · %d days together", streak, spanDays),
+                padL, y, 11.5f, C_DIM, 150, 0.4f, false);
 
             drawTip(c, padL, H - padB - 12 * dp, now, false);
         }
@@ -1043,11 +1052,13 @@ public class StarFieldView extends View {
 
     /** v4.1：底部提示轮播，三条轻提示轮流浮现，替掉原本一行静态小字 */
     private void drawTip(Canvas c, float x, float y, long now, boolean centered) {
-        String t1 = litToday ? "已经亮着 " + streak + " 天 · 摇一摇回到过去" : "心情会变成星的颜色";
-        String t2 = "轻触夜空 · 点亮今天";
-        String t3 = "长按星星 · 看那天、写字、起名";
-        String t4 = "长按空白 · 直接补记某一天";
-        String t5 = "右上角星图 · 看见整年";
+        String t1 = litToday
+                ? I18n.f("已经亮着 %d 天 · 摇一摇回到过去", "Lit for %d days · shake to go back", streak)
+                : I18n.t("心情会变成星的颜色", "Your mood becomes the star's color");
+        String t2 = I18n.t("轻触夜空 · 点亮今天", "Tap the sky · light today");
+        String t3 = I18n.t("长按星星 · 看那天、写字、起名", "Long-press a star · view, note, name it");
+        String t4 = I18n.t("长按空白 · 直接补记某一天", "Long-press blank · backfill a day");
+        String t5 = I18n.t("右上角星图 · 看见整年", "Chart up right · see the whole year");
         String[] tips = new String[]{t1, t2, t3, t4, t5};
         long period = 4600L;
         int idx = (int) ((now / period) % tips.length);
@@ -1197,9 +1208,9 @@ public class StarFieldView extends View {
     }
 
     private void drawButtons(Canvas c) {
-        drawPill(c, btnBook, "星图", 1, panelOpen);
-        drawPill(c, btnSys, "系统", 3, sysOpen);
-        drawPill(c, btnOrient, land ? "竖屏" : "横屏", 2, false);
+        drawPill(c, btnBook, I18n.t("星图", "Chart"), 1, panelOpen);
+        drawPill(c, btnSys, I18n.t("系统", "System"), 3, sysOpen);
+        drawPill(c, btnOrient, land ? I18n.t("竖屏", "Portrait") : I18n.t("横屏", "Landscape"), 2, false);
     }
 
     private void drawPill(Canvas c, RectF r, String label, int icon, boolean active) {
@@ -1292,9 +1303,12 @@ public class StarFieldView extends View {
         // 引导文字（v6.1：补记时换成那天的日期）
         boolean back = pendingDate != null;
         boolean exists = back && days.contains(pendingDate);
-        textCenter(c, back ? DayEdit.pretty(pendingDate) : "今天是什么颜色",
+        textCenter(c, back ? DayEdit.pretty(pendingDate) : I18n.t("今天是什么颜色", "What color is today"),
                 pickCx, pickCy + 6 * dp, back ? 12 : 11, C_TEXT, 190, back ? 0.8f : 1.6f);
-        textCenter(c, back ? (exists ? "换成另一种颜色" : "选一颗，补上这颗星") : "选一颗，放进夜空",
+        textCenter(c, back
+                        ? (exists ? I18n.t("换成另一种颜色", "Pick another color")
+                        : I18n.t("选一颗，补上这颗星", "Pick a color to backfill"))
+                        : I18n.t("选一颗，放进夜空", "Pick a color for the sky"),
                 pickCx, pickCy + 24 * dp, 9.5f, C_DIM, 120, 0.8f);
 
         // 中心柔光
@@ -1342,7 +1356,7 @@ public class StarFieldView extends View {
                 p.setAlpha(255);
             }
 
-            textCenter(c, Constellation.MOOD_NAME[i], x, y + rad + 16 * dp, 9.5f,
+            textCenter(c, Constellation.moodName(i), x, y + rad + 16 * dp, 9.5f,
                     Constellation.MOOD_COLOR[i], (int) (190 * appear), 0.6f);
         }
         p.setAlpha(255);
@@ -1397,7 +1411,7 @@ public class StarFieldView extends View {
         float px = card.left + 22 * dp;
         float right = card.right - 22 * dp;
         float ry = card.top + headH - 10 * dp;
-        text(c, "星图", px, ry, 17, C_TEXT, 235, 1.4f, true);
+        text(c, I18n.t("星图", "Star chart"), px, ry, 17, C_TEXT, 235, 1.4f, true);
         textRight(c, "STAR CHART", right, ry - 2 * dp, 8.5f, C_DIM, 120);
         ry += 10 * dp;
 
@@ -1407,9 +1421,10 @@ public class StarFieldView extends View {
         c.drawLine(px, ry, right, ry, p);
         ry += divH;
 
-        ry = statRow(c, "已点亮", total + " 天", px, right, ry, rowH);
-        ry = statRow(c, "最长连续", Math.max(streak, bestStreak) + " 天", px, right, ry, rowH);
-        ry = statRow(c, "陪伴", spanDays + " 天", px, right, ry, rowH);
+        ry = statRow(c, I18n.t("已点亮", "Lit"), I18n.days(total), px, right, ry, rowH);
+        ry = statRow(c, I18n.t("最长连续", "Longest streak"),
+                I18n.days(Math.max(streak, bestStreak)), px, right, ry, rowH);
+        ry = statRow(c, I18n.t("陪伴", "Together"), I18n.days(spanDays), px, right, ry, rowH);
 
         // 12 个月色带柱
         ry += 6 * dp;
@@ -1453,25 +1468,27 @@ public class StarFieldView extends View {
             }
         }
         p.setAlpha(255);
-        String chartLabel = year + " 年星盘 · 轻触试听";
+        String chartLabel = I18n.f("%d 年星盘 · 轻触试听", "%d chart · tap to play", year);
         if (playMonth >= 0) {
             chartLabel = "♪ " + Melody.monthName(playMonth)
-                    + (playTotal > 0 ? " · " + Math.min(playStep + 1, playTotal) + "/" + playTotal : " · 空");
+                    + (playTotal > 0 ? " · " + Math.min(playStep + 1, playTotal) + "/" + playTotal
+                    : I18n.t(" · 空", " · empty"));
         }
         text(c, chartLabel, px, baseY + 13 * dp, 9, playMonth >= 0 ? C_WARM : C_DIM, playMonth >= 0 ? 200 : 130,
                 0.6f, false);
-        textRight(c, "最亮 " + Constellation.MOOD_NAME[dominantMoodAll()], right, baseY + 13 * dp, 9,
+        textRight(c, I18n.f("最亮 %s", "Brightest %s", Constellation.moodName(dominantMoodAll())),
+                right, baseY + 13 * dp, 9,
                 Constellation.MOOD_COLOR[dominantMoodAll()], 200);
 
         // v4.0 心情曲线：近六周的起伏
         ry = baseY + 26 * dp;
         float[] series = MoodCurve.weekly(days, mood, today, 6);
-        text(c, "心情曲线 · 近六周", px, ry, 9, C_DIM, 155, 0.6f, false);
+        text(c, I18n.t("心情曲线 · 近六周", "Mood curve · last 6 weeks"), px, ry, 9, C_DIM, 155, 0.6f, false);
         textRight(c, MoodCurve.caption(series), right, ry, 9, C_WARM, 195);
         ry += 9 * dp;
         drawCurveSeries(c, series, px, right, ry, curveH);
         text(c, MoodCurve.weeksAgoLabel(today, 6), px, ry + curveH + 10 * dp, 8, C_DIM, 95, 0.4f, false);
-        textRight(c, "本周", right, ry + curveH + 10 * dp, 8, C_DIM, 95);
+        textRight(c, I18n.t("本周", "This week"), right, ry + curveH + 10 * dp, 8, C_DIM, 95);
         ry += curveH + 22 * dp;
 
         // 星语（按宽度折行）
@@ -1496,10 +1513,10 @@ public class StarFieldView extends View {
         panelReplayBtn.set(px + bW + gap2, bTop, px + bW * 2 + gap2, bTop + bh);
         panelSaveBtn.set(px + bW * 2 + gap2 * 2, bTop, px + bW * 3 + gap2 * 2, bTop + bh);
         closeBtnRect.set(px + (bW + gap2) * 3, bTop, right, bTop + bh);
-        drawGhostBtn(c, panelBackfillBtn, "补记", C_WARM);
-        drawGhostBtn(c, panelReplayBtn, "回放", C_WARM);
-        drawGhostBtn(c, panelSaveBtn, "存图", C_WARM);
-        drawGhostBtn(c, closeBtnRect, "收起", C_WARM);
+        drawGhostBtn(c, panelBackfillBtn, I18n.t("补记", "Backfill"), C_WARM);
+        drawGhostBtn(c, panelReplayBtn, I18n.t("回放", "Replay"), C_WARM);
+        drawGhostBtn(c, panelSaveBtn, I18n.t("存图", "Save"), C_WARM);
+        drawGhostBtn(c, closeBtnRect, I18n.t("收起", "Hide"), C_WARM);
     }
 
     private void drawGhostBtn(Canvas c, RectF r, String label, int color) {
@@ -1628,7 +1645,7 @@ public class StarFieldView extends View {
         float px = card.left + 22 * dp;
         float right = card.right - 22 * dp;
         float ry = card.top + headH - 10 * dp;
-        text(c, "系统适配", px, ry, 17, C_TEXT, 235, 1.4f, true);
+        text(c, I18n.t("系统适配", "System"), px, ry, 17, C_TEXT, 235, 1.4f, true);
         textRight(c, "SYSTEM COMPAT", right, ry - 2 * dp, 8.5f, C_DIM, 120);
         ry += 10 * dp;
         p.setStyle(Paint.Style.STROKE);
@@ -1640,7 +1657,9 @@ public class StarFieldView extends View {
         float top = ry + 8 * dp;
         text(c, Compat.versionLabel(), px, top + (compact ? 17 : 20) * dp,
                 compact ? 19f : 23f, C_WARM, 240, 0.5f, true);
-        text(c, NativeCore.PAGE ? "零权限 · 原生库按 16 KB 对齐" : "零权限 · 无原生库 · 天然兼容",
+        text(c, NativeCore.PAGE
+                ? I18n.t("零权限 · 原生库按 16 KB 对齐", "No permissions · native libs 16 KB aligned")
+                : I18n.t("零权限 · 无原生库 · 天然兼容", "No permissions · no native libs · compatible"),
                 px, top + (compact ? 30 : 36) * dp, 9.5f, C_DIM, 140, 0.4f, false);
         // 右侧状态：内存是否已让位
         String badge = CompatTable.memBadge(trimLevel);
@@ -1679,8 +1698,10 @@ public class StarFieldView extends View {
         }
         // v6.3：这行必须跟着实测页大小走，16 KB 设备才谈大页收益
         String tl = CompatTable.is16k(Compat.pageSize())
-                ? "16 KB 页 · 页表项约 -75% · TLB 覆盖约 x4"
-                : "4 KB 页 · 原生库按 16 KB 预对齐，换机即兼容";
+                ? I18n.t("16 KB 页 · 页表项约 -75% · TLB 覆盖约 x4",
+                "16 KB pages · ~75% fewer page-table entries · ~4x TLB reach")
+                : I18n.t("4 KB 页 · 原生库按 16 KB 预对齐，换机即兼容",
+                "4 KB pages · native libs pre-aligned to 16 KB, portable");
         text(c, tl, px, ty + (compact ? 2 : 3) * dp, 8.2f, C_DIM, 120, 0.3f, false);
 
         // 四项实测事实
@@ -1689,10 +1710,13 @@ public class StarFieldView extends View {
         String pageNote = CompatTable.pageCompat(NativeCore.loadedCount() > 0);
         String memNote = CompatTable.memNote(Compat.lowRam(getContext()), trimLevel);
         ry = rowTop + 12 * dp;
-        ry = sysRow(c, "页大小", pageNote, Compat.pageLabel(), px, right, ry, rowH);
-        ry = sysRow(c, "内存档", memNote, heap, px, right, ry, rowH);
-        ry = sysRow(c, "刷新率", "随内容自适应", Compat.refreshLabel(getContext()), px, right, ry, rowH);
-        ry = sysRow(c, "边到边", "刘海 / 手势条已让行", "已适配", px, right, ry, rowH);
+        ry = sysRow(c, I18n.t("页大小", "Page size"), pageNote, Compat.pageLabel(), px, right, ry, rowH);
+        ry = sysRow(c, I18n.t("内存档", "Memory"), memNote, heap, px, right, ry, rowH);
+        ry = sysRow(c, I18n.t("刷新率", "Refresh"), I18n.t("随内容自适应", "Adaptive"),
+                Compat.refreshLabel(getContext()), px, right, ry, rowH);
+        ry = sysRow(c, I18n.t("边到边", "Edge-to-edge"),
+                I18n.t("刘海 / 手势条已让行", "Notch and gesture bar respected"),
+                I18n.t("已适配", "Ready"), px, right, ry, rowH);
 
         // 页脚（divider 与文字都相对于四行结束位置排，不会被压线）
         float rowEnd = ry - rowH;
@@ -1702,11 +1726,14 @@ public class StarFieldView extends View {
         p.setColor(0x14FFFFFF);
         c.drawLine(px, divY, right, divY, p);
         float fy = rowEnd + (compact ? 22 : 24) * dp;
-        text(c, "预测式返回 · 暗色跟随 · 帧率自适", px, fy, 9.2f, C_DIM, 170, 0.3f, false);
+        text(c, I18n.t("预测式返回 · 暗色跟随 · 帧率自适", "Predictive back · dark mode · adaptive frame rate"),
+                px, fy, 9.2f, C_DIM, 170, 0.3f, false);
         if (verCache == null) verCache = Compat.appVersion(getContext());
         textRight(c, "SHIGUANG v" + verCache, right, fy, 8.5f, C_DIM, 125);
         if (!compact) {
-            text(c, "内存公平：系统内存紧张时先释放着色器与位图", px, fy + 13 * dp, 8.5f, C_DIM, 110, 0.2f, false);
+            text(c, I18n.t("内存公平：系统内存紧张时先释放着色器与位图",
+                "Memory fair play: shaders and bitmaps go first under pressure"),
+                px, fy + 13 * dp, 8.5f, C_DIM, 110, 0.2f, false);
             textRight(c, "\u00A9 2026 \u738b\u5b59\u9633 \u00b7 \u72ec\u7acb\u5f00\u53d1", right, fy + 13 * dp, 8.5f, C_DIM, 110);
         }
     }
@@ -2162,7 +2189,7 @@ public class StarFieldView extends View {
         if (hasNote) wrapText(note, textW);
         else {
             wrapBuf.clear();
-            wrapBuf.add("还没写下备注");
+            wrapBuf.add(I18n.t("还没写下备注", "No note yet"));
         }
         int lines = wrapBuf.size();
 
@@ -2182,7 +2209,7 @@ public class StarFieldView extends View {
         float yDate = top + 42 * dp;
         int mo = Integer.parseInt(date.substring(5, 7));
         int da = Integer.parseInt(date.substring(8, 10));
-        text(c, mo + "月" + da + "日", left + padIn, yDate, 24, C_TEXT, (int) (242 * a), 0.5f, true);
+        text(c, I18n.date(mo, da), left + padIn, yDate, 24, C_TEXT, (int) (242 * a), 0.5f, true);
         textRight(c, date.substring(0, 4), left + cw - padIn, yDate, 11, C_DIM, (int) (135 * a));
         textRight(c, weekdayOf(date), left + cw - padIn, yDate + 17 * dp, 11.5f, C_DIM, (int) (185 * a));
 
@@ -2192,29 +2219,30 @@ public class StarFieldView extends View {
         p.setAlpha((int) (245 * a));
         c.drawCircle(left + padIn + 4 * dp, yMood - 4 * dp, 4 * dp, p);
         p.setAlpha(255);
-        text(c, Constellation.MOOD_NAME[m], left + padIn + 16 * dp, yMood, 13.5f, mc, (int) (238 * a), 0.6f, false);
+        text(c, Constellation.moodName(m), left + padIn + 16 * dp, yMood, 13.5f, mc, (int) (238 * a), 0.6f, false);
 
         int idx = starDates.indexOf(date) + 1;
         p.setTextSize(13.5f * dp);
-        float nameW = p.measureText(Constellation.MOOD_NAME[m]);
+        float nameW = p.measureText(Constellation.moodName(m));
         if (idx > 0) {
-            text(c, "第 " + idx + " 颗", left + padIn + 16 * dp + nameW + 10 * dp, yMood,
+            text(c, I18n.nth(idx), left + padIn + 16 * dp + nameW + 10 * dp, yMood,
                     10.5f, C_DIM, (int) (150 * a), 0.3f, false);
         }
 
         // v4.0 星名：有自定义名显示自定义名，否则显示「第 N 颗 · 心情词」
         String custom = StarName.clean(names.get(date));
         boolean named = custom.length() > 0;
-        String nm = named ? custom : "还没有名字";
+        String nm = named ? custom : I18n.t("还没有名字", "No name yet");
         float yName = yMood + 23 * dp;
         p.setStyle(Paint.Style.FILL);
         p.setColor(mc);
         p.setAlpha((int) (150 * a));
         c.drawCircle(left + padIn + 3 * dp, yName - 3.5f * dp, 1.7f * dp, p);
         p.setAlpha(255);
-        text(c, named ? "「" + nm + "」" : nm, left + padIn + 11 * dp, yName, 12.5f,
+        text(c, named ? I18n.t("「" + nm + "」", "\u201C" + nm + "\u201D") : nm,
+                left + padIn + 11 * dp, yName, 12.5f,
                 named ? C_WARM : C_DIM, (int) ((named ? 228 : 130) * a), 0.3f, false);
-        textRight(c, "星名", left + cw - padIn, yName, 9, C_DIM, (int) (105 * a));
+        textRight(c, I18n.t("星名", "NAME"), left + cw - padIn, yName, 9, C_DIM, (int) (105 * a));
 
         float yDiv = yName + 12 * dp;
         p.setStyle(Paint.Style.STROKE);
@@ -2238,7 +2266,8 @@ public class StarFieldView extends View {
                         13.5f, C_WARM, (int) (226 * a), 0.2f, false);
             }
         } else {
-            text(c, "还没写下备注", left + padIn, yNote, 12.5f, C_DIM, (int) (120 * a), 0.2f, false);
+            text(c, I18n.t("还没写下备注", "No note yet"), left + padIn, yNote, 12.5f, C_DIM,
+                    (int) (120 * a), 0.2f, false);
         }
 
         float btnY = top + 140 * dp + lines * 21 * dp;
@@ -2256,7 +2285,8 @@ public class StarFieldView extends View {
         c.drawRoundRect(peekNameBtn, 17 * dp, 17 * dp, p);
         p.setStyle(Paint.Style.FILL);
         p.setAlpha(255);
-        textCenter(c, names.containsKey(date) ? "改名" : "起个名", peekNameBtn.centerX(), btnY + 22 * dp,
+        textCenter(c, names.containsKey(date) ? I18n.t("改名", "Rename") : I18n.t("起个名", "Name it"),
+                peekNameBtn.centerX(), btnY + 22 * dp,
                 11.5f, C_WARM, (int) (225 * a), 0.8f);
 
         peekNoteBtn.set(peekNameBtn.right + bgap, btnY,
@@ -2271,7 +2301,8 @@ public class StarFieldView extends View {
         c.drawRoundRect(peekNoteBtn, 17 * dp, 17 * dp, p);
         p.setStyle(Paint.Style.FILL);
         p.setAlpha(255);
-        textCenter(c, hasNote ? "改一句" : "写一句", peekNoteBtn.centerX(), btnY + 22 * dp,
+        textCenter(c, hasNote ? I18n.t("改一句", "Edit note") : I18n.t("写一句", "Add note"),
+                peekNoteBtn.centerX(), btnY + 22 * dp,
                 12, C_WARM, (int) (232 * a), 1.0f);
 
         peekDelBtn.set(peekNoteBtn.right + bgap, btnY,
@@ -2291,7 +2322,9 @@ public class StarFieldView extends View {
         textCenter(c, DayEdit.deleteLabel(peekDelArmed), peekDelBtn.centerX(), btnY + 22 * dp,
                 10.5f, dColor, (int) ((peekDelArmed ? 245 : 205) * a), 0.2f);
 
-        textCenter(c, peekDelArmed ? "再点一次，这一天就真的没了" : "轻触空白收起",
+        textCenter(c, peekDelArmed
+                        ? I18n.t("再点一次，这一天就真的没了", "Tap again to erase this day")
+                        : I18n.t("轻触空白收起", "Tap blank to close"),
                 left + cw / 2f, btnY + 52 * dp, 9.5f,
                 peekDelArmed ? 0xFFFF9E9E : C_DIM,
                 (int) ((peekDelArmed ? 200 : 105) * a), 0.3f);
@@ -2327,8 +2360,7 @@ public class StarFieldView extends View {
         try {
             Calendar cal = Calendar.getInstance();
             cal.setTime(iso.parse(date));
-            String[] w = {"周日", "周一", "周二", "周三", "周四", "周五", "周六"};
-            return w[cal.get(Calendar.DAY_OF_WEEK) - 1];
+            return I18n.weekday(cal.get(Calendar.DAY_OF_WEEK) - 1);
         } catch (Exception e) {
             return "";
         }
@@ -2380,7 +2412,7 @@ public class StarFieldView extends View {
         if (dh != null) {
             dh.onDataChanged();
             if (existed) {
-                dh.toast(DayEdit.recoloredText(date, Constellation.MOOD_NAME[m]));
+                dh.toast(DayEdit.recoloredText(date, Constellation.moodName(m)));
             } else if (!date.equals(today)) {
                 dh.toast(DayEdit.backfillText(date));
             }
@@ -2458,7 +2490,8 @@ public class StarFieldView extends View {
         picking = false;
         cancelPlay();
         // 自绘面板对读屏器不透明，进入时补一句位置说明
-        announceForAccessibility("补记哪一天，只能选今天及以前五年内的日期");
+        announceForAccessibility(I18n.t("补记哪一天，只能选今天及以前五年内的日期",
+                "Backfill a day: only today and the past five years"));
         invalidate();
     }
 
@@ -2645,9 +2678,10 @@ public class StarFieldView extends View {
         String todayStr = iso.format(new Date());
 
         // 标题 + 可选范围（规则写在标题旁，不再占用日格空间）
-        text(c, "补记哪一天", calCard.left + inset + 4 * dp, calCard.top + 32 * dp,
+        text(c, I18n.t("补记哪一天", "Backfill a day"), calCard.left + inset + 4 * dp, calCard.top + 32 * dp,
                 16.5f, C_TEXT, Math.min(240, a), 1.6f, true);
-        textRight(c, "今天及以前 · 近五年", calCard.right - inset - 2 * dp, calCard.top + 24 * dp,
+        textRight(c, I18n.t("今天及以前 · 近五年", "Today and earlier · 5 years"),
+                calCard.right - inset - 2 * dp, calCard.top + 24 * dp,
                 8.4f, C_DIM, (int) (120 * ease));
 
         // 月份切换
@@ -2665,14 +2699,16 @@ public class StarFieldView extends View {
         ax = calNextBtn.centerX();
         c.drawLine(ax - 3.4f * dp, ay - 5.2f * dp, ax + 3 * dp, ay, p);
         c.drawLine(ax + 3 * dp, ay, ax - 3.4f * dp, ay + 5.2f * dp, p);
-        textCenter(c, calYear + " 年 " + (calMonth + 1) + " 月", calCard.centerX(), my,
+        textCenter(c, I18n.en() ? I18n.monthShort(calMonth + 1) + " " + calYear
+                        : calYear + " 年 " + (calMonth + 1) + " 月",
+                calCard.centerX(), my,
                 13.5f, C_TEXT, Math.min(225, a), 0.8f);
 
         // 星期表头
-        String[] wk = {"日", "一", "二", "三", "四", "五", "六"};
         float wkY = calCells[0].top - 7 * dp;
         for (int i = 0; i < 7; i++) {
-            textCenter(c, wk[i], calCells[i].centerX(), wkY, 8.5f, C_DIM, (int) (130 * ease), 0f);
+            textCenter(c, I18n.weekdayHead(i), calCells[i].centerX(), wkY, 8.5f, C_DIM,
+                    (int) (130 * ease), 0f);
         }
 
         // 日格
@@ -2715,9 +2751,10 @@ public class StarFieldView extends View {
         p.setColor(C_WARM);
         p.setAlpha((int) ((calPressed == -2 ? 120 : 62) * ease));
         c.drawRoundRect(calCloseBtn, calCloseBtn.height() / 2f, calCloseBtn.height() / 2f, p);
-        textCenter(c, "取消", calCloseBtn.centerX(), fy, 11.5f, C_WARM,
+        textCenter(c, I18n.t("取消", "Cancel"), calCloseBtn.centerX(), fy, 11.5f, C_WARM,
                 (int) (205 * ease), 0.6f);
-        textRight(c, "实心点 已点亮 · 空心点 补记", calCard.right - inset - 2 * dp, fy, 8.4f,
+        textRight(c, I18n.t("实心点 已点亮 · 空心点 补记", "Filled lit · hollow backfilled"),
+                calCard.right - inset - 2 * dp, fy, 8.4f,
                 C_DIM, (int) (118 * ease));
     }
 
@@ -2843,7 +2880,7 @@ public class StarFieldView extends View {
                 1 * dp, 1 * dp, p);
 
         p.setStyle(Paint.Style.FILL);
-        String label = "已抹掉 " + (undoDate == null ? "" : DayEdit.pretty(undoDate));
+        String label = I18n.f("已抹掉 %s", "Erased %s", undoDate == null ? "" : DayEdit.pretty(undoDate));
         text(c, label, undoRect.left + 20 * dp, undoRect.centerY() + 4 * dp, 11f, 0xFFDCE6FF, (int) (a * 0.9f), 1.4f, false);
 
         float cw = 76 * dp;
@@ -2851,7 +2888,8 @@ public class StarFieldView extends View {
                 undoRect.right - 8 * dp, undoRect.bottom - 7 * dp);
         p.setColor(0x2EFFF0D0);
         c.drawRoundRect(undoBtn, undoBtn.height() / 2f, undoBtn.height() / 2f, p);
-        textCenter(c, "撤销", undoBtn.centerX(), undoBtn.centerY() + 4 * dp, 11f, C_WARM, a, 0.6f);
+        textCenter(c, I18n.t("撤销", "Undo"), undoBtn.centerX(), undoBtn.centerY() + 4 * dp, 11f,
+                C_WARM, a, 0.6f);
         p.setAlpha(255);
     }
 
@@ -2884,7 +2922,7 @@ public class StarFieldView extends View {
         Host dh = host();
         if (dh != null) {
             dh.onDataChanged();
-            dh.toast("已恢复 " + DayEdit.pretty(date) + " 的星");
+            dh.toast(I18n.f("已恢复 %s 的星", "Restored the star on %s", DayEdit.pretty(date)));
         }
         rebuildStars();
         peekDate = null;

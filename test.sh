@@ -36,7 +36,12 @@ for T in $(find test -name '*Test.java' | sort); do
   PKG="$(sed -n 's/^package \(.*\);/\1/p' "$T" | head -1)"
   [ -n "$PKG" ] && C="$PKG.$C"
   printf '\n---- %s ----\n' "$C"
-  if "$JAVA" -cp "$OUT" "$C"; then :; else FAIL=$((FAIL+1)); fi
+  # 固定中文：既有断言写的是中文原文，不能被开发机/CI 的默认 locale 带偏。
+  if "$JAVA" -Duser.language=zh -Duser.country=CN -Dfile.encoding=UTF-8 -cp "$OUT" "$C"; then
+    :;
+  else
+    FAIL=$((FAIL+1))
+  fi
 done
 
 echo

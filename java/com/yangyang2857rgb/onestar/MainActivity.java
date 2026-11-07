@@ -67,7 +67,10 @@ public class MainActivity extends Activity implements StarFieldView.Host,
     @Override
     protected void onResume() {
         super.onResume();
+        // 用户可能在系统设置里换了语言再切回来，这里重判一次（不重建进程也能换文案）。
+        I18n.refresh();
         applyImmersive();
+        if (view != null) view.invalidate();
         StarWidget.refresh(this);
         if (sensorMgr != null && accel != null) {
             try {
@@ -326,7 +329,7 @@ public class MainActivity extends Activity implements StarFieldView.Host,
         final EditText et = new EditText(this);
         et.setText(oldNote == null ? "" : oldNote);
         et.setSelection(et.getText().length());
-        et.setHint("那天想留下的一句话");
+        et.setHint(I18n.t("那天想留下的一句话", "One line to keep for that day"));
         et.setSingleLine(true);
         et.setInputType(InputType.TYPE_CLASS_TEXT);
         et.setTextSize(15);
@@ -340,21 +343,21 @@ public class MainActivity extends Activity implements StarFieldView.Host,
         try {
             int mo = Integer.parseInt(date.substring(5, 7));
             int da = Integer.parseInt(date.substring(8, 10));
-            title = mo + "月" + da + "日 · 一句话";
+            title = I18n.en() ? I18n.date(mo, da) + " · Note" : mo + "月" + da + "日 · 一句话";
         } catch (Exception e) {
-            title = "一句话";
+            title = I18n.t("一句话", "Note");
         }
 
         AlertDialog dlg = new AlertDialog.Builder(this,
                 android.R.style.Theme_DeviceDefault_Dialog_Alert)
                 .setTitle(title)
                 .setView(et)
-                .setPositiveButton("留下", new DialogInterface.OnClickListener() {
+                .setPositiveButton(I18n.t("留下", "Save"), new DialogInterface.OnClickListener() {
                     public void onClick(DialogInterface di, int w) {
                         if (view != null) view.setNote(date, et.getText().toString());
                     }
                 })
-                .setNegativeButton("算了", null)
+                .setNegativeButton(I18n.t("算了", "Cancel"), null)
                 .create();
         dlg.setOnDismissListener(new DialogInterface.OnDismissListener() {
             public void onDismiss(DialogInterface di) {
@@ -380,7 +383,7 @@ public class MainActivity extends Activity implements StarFieldView.Host,
         final EditText et = new EditText(this);
         et.setText(oldName == null ? "" : oldName);
         et.setSelection(et.getText().length());
-        et.setHint("给这颗星取个名字");
+        et.setHint(I18n.t("给这颗星取个名字", "Name this star"));
         et.setSingleLine(true);
         et.setInputType(InputType.TYPE_CLASS_TEXT);
         et.setFilters(new android.text.InputFilter[]{new android.text.InputFilter.LengthFilter(StarName.MAX)});
@@ -395,21 +398,21 @@ public class MainActivity extends Activity implements StarFieldView.Host,
         try {
             int mo = Integer.parseInt(date.substring(5, 7));
             int da = Integer.parseInt(date.substring(8, 10));
-            title = mo + "月" + da + "日 · 星名";
+            title = I18n.en() ? I18n.date(mo, da) + " · Star name" : mo + "月" + da + "日 · 星名";
         } catch (Exception e) {
-            title = "星名";
+            title = I18n.t("星名", "Star name");
         }
 
         AlertDialog dlg = new AlertDialog.Builder(this,
                 android.R.style.Theme_DeviceDefault_Dialog_Alert)
                 .setTitle(title)
                 .setView(et)
-                .setPositiveButton("就叫它", new DialogInterface.OnClickListener() {
+                .setPositiveButton(I18n.t("就叫它", "Use it"), new DialogInterface.OnClickListener() {
                     public void onClick(DialogInterface di, int w) {
                         if (view != null) view.setStarName(date, et.getText().toString());
                     }
                 })
-                .setNegativeButton("算了", null)
+                .setNegativeButton(I18n.t("算了", "Cancel"), null)
                 .create();
         dlg.setOnDismissListener(new DialogInterface.OnDismissListener() {
             public void onDismiss(DialogInterface di) {
@@ -431,7 +434,8 @@ public class MainActivity extends Activity implements StarFieldView.Host,
     /** v4.0 把年度星图存成一张长图。 */
     @Override
     public void savePoster() {
-        Toast.makeText(this, "正在把夜空装进相册…", Toast.LENGTH_SHORT).show();
+        Toast.makeText(this, I18n.t("正在把夜空装进相册…", "Packing your night sky into the album…"),
+                Toast.LENGTH_SHORT).show();
         final android.content.Context app = getApplicationContext();
         new Thread(new Runnable() {
             public void run() {
@@ -439,8 +443,9 @@ public class MainActivity extends Activity implements StarFieldView.Host,
                 runOnUiThread(new Runnable() {
                     public void run() {
                         Toast.makeText(MainActivity.this,
-                                path == null ? "这里还没有星星，先点亮一颗吧"
-                                        : "已存到相册：" + path,
+                                path == null
+                                        ? I18n.t("这里还没有星星，先点亮一颗吧", "No stars yet — light one first")
+                                        : I18n.f("已存到相册：%s", "Saved to album: %s", path),
                                 Toast.LENGTH_LONG).show();
                     }
                 });

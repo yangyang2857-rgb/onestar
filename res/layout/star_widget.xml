@@ -15,7 +15,7 @@
         android:id="@+id/w_hint"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="拾光 · 待点亮"
+        android:text="@string/widget_hint"
         android:textColor="#8A97BD"
         android:textSize="10sp"
         android:letterSpacing="0.12" />
@@ -25,7 +25,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="6dp"
-        android:text="今天还没点亮"
+        android:text="@string/widget_line1"
         android:textColor="#EEF3FF"
         android:textSize="17sp"
         android:textStyle="bold" />
@@ -35,7 +35,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="4dp"
-        android:text="轻触，放一颗进夜空"
+        android:text="@string/widget_line2"
         android:textColor="#FFF0D0"
         android:textSize="11sp" />
 </LinearLayout>
