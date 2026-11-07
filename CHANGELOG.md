@@ -2,6 +2,11 @@
 
 版本号与 `AndroidManifest.xml` 中的 `versionName` 一致；括号内为 `versionCode`。
 
+## v5.0 (11)
+
+- 系统适配版：接入不同 Android 版本的页大小、内存档位、显示特性读取
+- 新增 `Compat` 适配层
+
 ## v4.4 (10)
 
 - 去除绘制残留白线
