@@ -2,6 +2,11 @@
 
 版本号与 `AndroidManifest.xml` 中的 `versionName` 一致；括号内为 `versionCode`。
 
+## v5.3 (14)
+
+- 系统信息面板重排，版本/页大小/内存档位展示改为表格化
+- `CompatTable` 从 `Compat` 中抽出，成为可单测的纯逻辑类
+
 ## v5.2 (13)
 
 - **16 KB 页对齐**：新增 `tools/zip16k.py`，`.so` 以 STORED 存放并把数据偏移对齐到 16384
