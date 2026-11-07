@@ -40,9 +40,24 @@ public final class CompatTable {
         return bytes >= 16384;
     }
 
+    /**
+     * 内存页说明。
+     *
+     * v6.3 修正：旧文案在 16 KB 设备上直接返回「16 KB 页 · 页表更省」，
+     * 把内核对大页的收益说成了 App 自己的能力，且不区分本包到底有没有原生库；
+     * 在 4 KB 设备上又只谈库对齐、不提设备页。这里统一拆成
+     * 「设备页大小（运行时实测）+ 原生库对齐情况（编译期事实）」两件事。
+     */
     public static String pageNote(int bytes, boolean nativeAligned) {
-        if (is16k(bytes)) return "16 KB 页 · 页表更省";
-        return nativeAligned ? "4 KB 页 · 原生库已 16 KB 对齐" : "4 KB 页 · 无原生库 · 天然兼容";
+        String device = is16k(bytes) ? "16 KB 页" : "4 KB 页";
+        if (nativeAligned) return device + " · 原生库已按 16 KB 对齐";
+        return device + " · 无原生库 · 天然兼容";
+    }
+
+    /** 只给兼容性结论，页大小由右侧数值列单独展示，避免同一行里说两遍。 */
+    public static String pageCompat(boolean nativeLoaded) {
+        if (nativeLoaded) return "原生库已按 16 KB 对齐";
+        return "无原生库 · 天然兼容";
     }
 
     /** 内存让位状态：0 标准 / 1 已让位 / 2 深度让位。 */

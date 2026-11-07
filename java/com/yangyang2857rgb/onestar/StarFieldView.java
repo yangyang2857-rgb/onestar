@@ -183,6 +183,44 @@ public class StarFieldView extends View {
     private float undoT;
     private final RectF undoRect = new RectF();
     private static final long UNDO_MS = 5000;
+    private final Runnable undoExpire = new Runnable() {
+        @Override
+        public void run() {
+            if (undoDate != null) invalidate();
+        }
+    };
+
+    // v6.3 预测式返回：进度只推动面板本身，星空不跟着整屏后退
+    private float backP;
+    private android.animation.ValueAnimator backAnim;
+    private final Path backClip = new Path();   // 返回跟手时面板的圆角裁剪路径
+    private String verCache;   // 右下角版本号：只读一次包信息，避免每帧走 PackageManager
+
+    // ---------- v6.3 补记选日：自绘星历（替掉古早的原生 DatePickerDialog） ----------
+    private boolean calOpen;
+    private float calT;
+    private int calYear, calMonth;              // calMonth 取值 0-11
+    private int calPressed = -1;                // -1 无 · -2 关闭 · -3 上一月 · -4 下一月 · >=0 日格
+    private float calCell;
+    private final RectF calCard = new RectF();
+    private final RectF calPrevBtn = new RectF();
+    private final RectF calNextBtn = new RectF();
+    private final RectF calCloseBtn = new RectF();
+    private final RectF[] calCells = new RectF[42];
+    private final RectF[] calRings = new RectF[42];
+    private final String[] calDates = new String[42];
+    private final boolean[] calUsable = new boolean[42];
+    private final boolean[] calLit = new boolean[42];
+    private final boolean[] calBack = new boolean[42];
+    private boolean calDirty = true;
+    private int calLastW, calLastH;
+
+    {
+        for (int i = 0; i < 42; i++) {
+            calCells[i] = new RectF();
+            calRings[i] = new RectF();
+        }
+    }
 
     private RectF closeBtnRect = new RectF();
 
@@ -389,10 +427,17 @@ public class StarFieldView extends View {
         return sysOpen;
     }
 
+    /** v6.3：预测式返回只认「星图面板」与「系统面板」两层，其它视图不参与。 */
+    boolean hasPanelOpen() {
+        return sysOpen || panelOpen;
+    }
+
     boolean closePanels() {
         boolean had = sysOpen || panelOpen;
         sysOpen = false;
         panelOpen = false;
+        // v6.4：不在这里硬复位 backP，让提交返回时面板先顺着方向滑出再淡掉；
+        // backP 由 onDraw 在面板彻底消失后归零（见 panelT <= 0.001f 分支）
         if (had) {
             cancelPlay();
             invalidate();
@@ -456,9 +501,33 @@ public class StarFieldView extends View {
         panelT += (target - panelT) * 0.28f;
         if (Math.abs(target - panelT) < 0.002f) panelT = target;
         if (picking) panelT = 0f;
+        if (panelT <= 0.001f && backP > 0f) {
+            backP = 0f;                       // 面板已彻底淡出：跟手进度归零，不影响下次打开
+            if (backAnim != null) backAnim.cancel();
+        }
         if (!picking && panelT > 0.001f) {
+            // v6.3.1：对齐系统预测式返回的卡片式表现——
+            // 遮罩单独变淡，面板整体「缩小 · 圆角 · 右移」，后面的星空原地不动
+            float ease = 1 - (float) Math.pow(1 - panelT, 3);
+            drawPanelScrim(c, ease * (1f - 0.55f * backP));
+            c.save();
+            float bk = backP;
+            if (bk > 0.001f) {
+                float sc = 1f - 0.10f * bk;                       // 最多缩到 0.90
+                float dx = W * 0.22f * bk + W * 0.5f * (1f - sc);  // 右移，同时保持居中补偿
+                float dy = H * 0.5f * (1f - sc);
+                c.translate(dx, dy);
+                c.scale(sc, sc);
+                float rr = 16 * dp * bk;                          // 圆角最多 16dp
+                if (rr > 0.5f) {
+                    backClip.reset();
+                    backClip.addRoundRect(0, 0, W, H, rr, rr, Path.Direction.CW);
+                    c.clipPath(backClip);
+                }
+            }
             if (sysOpen) drawSystemPanel(c);
             else drawPanel(c);
+            c.restore();
         }
 
         float peekTarget = peekOpen ? 1f : 0f;
@@ -484,6 +553,7 @@ public class StarFieldView extends View {
         }
 
         if (trimLevel < 2) ambientMeteor(now);
+        drawCalendar(c);
         postInvalidateOnAnimation();
     }
 
@@ -1282,11 +1352,6 @@ public class StarFieldView extends View {
     private void drawPanel(Canvas c) {
         float ease = 1 - (float) Math.pow(1 - panelT, 3);
         p.reset();
-        p.setStyle(Paint.Style.FILL);
-        p.setColor(0xFF03040A);
-        p.setAlpha((int) (205 * ease));
-        c.drawRect(0, 0, W, H, p);
-        p.setAlpha(255);
 
         boolean compact = land;
         float cardW, x0, y0 = 0, dx = 0, dy = 0;
@@ -1518,14 +1583,19 @@ public class StarFieldView extends View {
         return y + rowH;
     }
 
-    private void drawSystemPanel(Canvas c) {
-        float ease = 1 - (float) Math.pow(1 - panelT, 3);
+    private void drawPanelScrim(Canvas c, float k) {
+        if (k <= 0.001f) return;
         p.reset();
         p.setStyle(Paint.Style.FILL);
         p.setColor(0xFF03040A);
-        p.setAlpha((int) (205 * ease));
+        p.setAlpha((int) (205 * Math.min(1f, k)));
         c.drawRect(0, 0, W, H, p);
         p.setAlpha(255);
+    }
+
+    private void drawSystemPanel(Canvas c) {
+        float ease = 1 - (float) Math.pow(1 - panelT, 3);
+        p.reset();
 
         boolean compact = land;
         float headH = compact ? 38 * dp : 46 * dp;
@@ -1570,8 +1640,8 @@ public class StarFieldView extends View {
         float top = ry + 8 * dp;
         text(c, Compat.versionLabel(), px, top + (compact ? 17 : 20) * dp,
                 compact ? 19f : 23f, C_WARM, 240, 0.5f, true);
-        text(c, "零权限 · 原生库 16 KB 对齐", px, top + (compact ? 30 : 36) * dp,
-                9.5f, C_DIM, 140, 0.4f, false);
+        text(c, NativeCore.PAGE ? "零权限 · 原生库按 16 KB 对齐" : "零权限 · 无原生库 · 天然兼容",
+                px, top + (compact ? 30 : 36) * dp, 9.5f, C_DIM, 140, 0.4f, false);
         // 右侧状态：内存是否已让位
         String badge = CompatTable.memBadge(trimLevel);
         textRight(c, badge, right, top + (compact ? 17 : 20) * dp, 12f,
@@ -1607,16 +1677,19 @@ public class StarFieldView extends View {
             textCenter(c, nameNodes[i], nx, lineY + 13 * dp, 7.8f,
                     cur ? C_WARM : C_DIM, cur ? 245 : (passed ? 175 : 105), 0f);
         }
-        text(c, "16 KB 页：页表项 -75% · TLB 覆盖 x4", px, ty + (compact ? 2 : 3) * dp,
-                8.2f, C_DIM, 120, 0.3f, false);
+        // v6.3：这行必须跟着实测页大小走，16 KB 设备才谈大页收益
+        String tl = CompatTable.is16k(Compat.pageSize())
+                ? "16 KB 页 · 页表项约 -75% · TLB 覆盖约 x4"
+                : "4 KB 页 · 原生库按 16 KB 预对齐，换机即兼容";
+        text(c, tl, px, ty + (compact ? 2 : 3) * dp, 8.2f, C_DIM, 120, 0.3f, false);
 
         // 四项实测事实
         float rowTop = ty + tlH + 4 * dp;
         String heap = Compat.memoryClass(getContext()) + " MB";
-        String pageNote = Compat.pageNote();
+        String pageNote = CompatTable.pageCompat(NativeCore.loadedCount() > 0);
         String memNote = CompatTable.memNote(Compat.lowRam(getContext()), trimLevel);
         ry = rowTop + 12 * dp;
-        ry = sysRow(c, "内存页", pageNote, Compat.pageLabel(), px, right, ry, rowH);
+        ry = sysRow(c, "页大小", pageNote, Compat.pageLabel(), px, right, ry, rowH);
         ry = sysRow(c, "内存档", memNote, heap, px, right, ry, rowH);
         ry = sysRow(c, "刷新率", "随内容自适应", Compat.refreshLabel(getContext()), px, right, ry, rowH);
         ry = sysRow(c, "边到边", "刘海 / 手势条已让行", "已适配", px, right, ry, rowH);
@@ -1630,7 +1703,8 @@ public class StarFieldView extends View {
         c.drawLine(px, divY, right, divY, p);
         float fy = rowEnd + (compact ? 22 : 24) * dp;
         text(c, "预测式返回 · 暗色跟随 · 帧率自适", px, fy, 9.2f, C_DIM, 170, 0.3f, false);
-        textRight(c, "SHIGUANG v6.2", right, fy, 8.5f, C_DIM, 125);
+        if (verCache == null) verCache = Compat.appVersion(getContext());
+        textRight(c, "SHIGUANG v" + verCache, right, fy, 8.5f, C_DIM, 125);
         if (!compact) {
             text(c, "内存公平：系统内存紧张时先释放着色器与位图", px, fy + 13 * dp, 8.5f, C_DIM, 110, 0.2f, false);
             textRight(c, "\u00A9 2026 \u738b\u5b59\u9633 \u00b7 \u72ec\u7acb\u5f00\u53d1", right, fy + 13 * dp, 8.5f, C_DIM, 110);
@@ -1693,6 +1767,7 @@ public class StarFieldView extends View {
     @Override
     public boolean onTouchEvent(MotionEvent e) {
         float x = e.getX(), y = e.getY();
+        if (calOpen) return onCalendarTouch(e, x, y);
         if (replayOn) {
             int act = e.getActionMasked();
             if (act == MotionEvent.ACTION_DOWN) {
@@ -1861,6 +1936,7 @@ public class StarFieldView extends View {
         }
         if (btnSys.contains(x, y)) {
             pulse();
+            resetBackProgress();
             sysOpen = true;
             panelOpen = false;
             cancelPlay();
@@ -1869,6 +1945,7 @@ public class StarFieldView extends View {
         }
         if (btnBook.contains(x, y)) {
             pulse();
+            resetBackProgress();
             panelOpen = true;
             invalidate();
             return;
@@ -2340,6 +2417,9 @@ public class StarFieldView extends View {
         undoName = names.remove(date);
         undoWasBackfill = backfilled.remove(date);
         undoUntil = System.nanoTime() / 1000000L + UNDO_MS;
+        // v6.3：低内存档不再逐帧刷新，补一次定时重绘，保证 5 秒后胶囊照样淡出
+        uiH.removeCallbacks(undoExpire);
+        uiH.postDelayed(undoExpire, UNDO_MS + 60L);
 
         today = iso.format(new Date());
         litToday = days.contains(today);
@@ -2360,6 +2440,349 @@ public class StarFieldView extends View {
         invalidate();
     }
 
+    // ---------- v6.3 补记选日：自绘星历 ----------
+
+    /** 打开星历：回到当前月，并让其它浮层先收起。 */
+    void openCalendar() {
+        java.util.Calendar c = java.util.Calendar.getInstance();
+        calYear = c.get(java.util.Calendar.YEAR);
+        calMonth = c.get(java.util.Calendar.MONTH);
+        calOpen = true;
+        calPressed = -1;
+        calT = 0f;
+        calDirty = true;
+        peekOpen = false;
+        peekDelArmed = false;
+        panelOpen = false;
+        sysOpen = false;
+        picking = false;
+        cancelPlay();
+        // 自绘面板对读屏器不透明，进入时补一句位置说明
+        announceForAccessibility("补记哪一天，只能选今天及以前五年内的日期");
+        invalidate();
+    }
+
+    boolean isCalOpen() {
+        return calOpen;
+    }
+
+    /** 返回手势进度：0 静止，1 面板被推到底。只影响面板，不动星空。 */
+    void setBackProgress(float p) {
+        float k = Math.max(0f, Math.min(1f, p));
+        if (backAnim != null) {
+            backAnim.cancel();
+            backAnim = null;
+        }
+        if (k == backP) return;
+        backP = k;
+        invalidate();
+    }
+
+    /** 手指退回边缘或面板已收起：200ms 减速弹回原位。 */
+    void animateBackRest() {
+        if (backP <= 0.001f) return;
+        if (backAnim != null) backAnim.cancel();
+        android.animation.ValueAnimator va = android.animation.ValueAnimator.ofFloat(backP, 0f);
+        va.setDuration(200L);
+        va.setInterpolator(new android.view.animation.DecelerateInterpolator(1.6f));
+        va.addUpdateListener(new android.animation.ValueAnimator.AnimatorUpdateListener() {
+            @Override
+            public void onAnimationUpdate(android.animation.ValueAnimator a) {
+                Object v = a.getAnimatedValue();
+                backP = v instanceof Float ? (Float) v : 0f;
+                invalidate();
+            }
+        });
+        backAnim = va;
+        va.start();
+    }
+
+    /** 提交返回：面板顺着手势方向继续滑出（backP -> 1），随后由 panelT 淡出收场。 */
+    void animateBackOut() {
+        if (backAnim != null) backAnim.cancel();
+        float from = Math.max(0.06f, backP);
+        android.animation.ValueAnimator va = android.animation.ValueAnimator.ofFloat(from, 1f);
+        va.setDuration(160L);
+        va.setInterpolator(new android.view.animation.DecelerateInterpolator(1.4f));
+        va.addUpdateListener(new android.animation.ValueAnimator.AnimatorUpdateListener() {
+            @Override
+            public void onAnimationUpdate(android.animation.ValueAnimator a) {
+                Object v = a.getAnimatedValue();
+                backP = v instanceof Float ? (Float) v : 0f;
+                invalidate();
+            }
+        });
+        backAnim = va;
+        va.start();
+    }
+
+    /** 面板重新打开前清掉上一次返回残留的进度。 */
+    void resetBackProgress() {
+        if (backAnim != null) {
+            backAnim.cancel();
+            backAnim = null;
+        }
+        if (backP != 0f) {
+            backP = 0f;
+            invalidate();
+        }
+    }
+
+    boolean closeCalendar() {
+        if (!calOpen) return false;
+        calOpen = false;
+        calPressed = -1;
+        invalidate();
+        return true;
+    }
+
+    private void shiftMonth(int delta) {
+        int y = calYear, m = calMonth + delta;
+        while (m < 0) { m += 12; y--; }
+        while (m > 11) { m -= 12; y++; }
+        java.util.Calendar now = java.util.Calendar.getInstance();
+        int ty = now.get(java.util.Calendar.YEAR);
+        int tm = now.get(java.util.Calendar.MONTH);
+        if (y > ty || (y == ty && m > tm)) return;  // 不翻到未来
+        calYear = y;
+        calMonth = m;
+        calPressed = -1;
+        calDirty = true;
+        pulse();
+        invalidate();
+    }
+
+    /** 命中判定：允许在矩形外 pad 像素内也吃下点击，小屏上更好按。 */
+    private static boolean hitPad(RectF r, float x, float y, float pad) {
+        return x >= r.left - pad && x <= r.right + pad
+                && y >= r.top - pad && y <= r.bottom + pad;
+    }
+
+    /** 重算星历的几何与每格状态（缓存在数组里，绘制与命中都用它）。 */
+    private void layoutCalendar() {
+        if (W <= 0 || H <= 0) return;
+        float cardW = Math.min(W - 24 * dp, 360 * dp);
+        float inset = 14 * dp;
+        float headH = 50 * dp;
+        float monthH = 38 * dp;
+        float weekH = 20 * dp;
+        float footH = 54 * dp;
+        // 横屏时上下内边距意义不大，直接按屏高给空间，避免卡片顶出屏幕
+        float avail = (land ? H - 20 * dp : H - padT - padB - 26 * dp);
+        float maxGrid = Math.max(120 * dp, avail - (headH + monthH + weekH + footH));
+        float cellW = (cardW - inset * 2) / 7f;
+        calCell = Math.min(cellW, Math.max(28 * dp, maxGrid / 6f));
+        float gridH = calCell * 6f;
+        float cardH = headH + monthH + weekH + gridH + footH;
+        float x0 = (W - cardW) / 2f;
+        float want = Math.max(padT + 6 * dp, (H - cardH) / 2f - 8 * dp);
+        float y0 = Math.min(want, H - cardH - 10 * dp);
+        if (y0 < 6 * dp) y0 = 6 * dp;
+        calCard.set(x0, y0, x0 + cardW, y0 + cardH);
+
+        float my = calCard.top + headH + monthH / 2f;
+        float by = my - 17 * dp;
+        calPrevBtn.set(calCard.left + inset, by, calCard.left + inset + 34 * dp, by + 34 * dp);
+        calNextBtn.set(calCard.right - inset - 34 * dp, by, calCard.right - inset, by + 34 * dp);
+        calCloseBtn.set(calCard.left + inset, calCard.bottom - footH + (footH - 30 * dp) / 2f,
+                calCard.left + inset + 58 * dp, calCard.bottom - footH + (footH + 30 * dp) / 2f);
+
+        java.util.Calendar cal = java.util.Calendar.getInstance();
+        cal.set(calYear, calMonth, 1);
+        int firstDow = cal.get(java.util.Calendar.DAY_OF_WEEK) - 1;
+        int dim = cal.getActualMaximum(java.util.Calendar.DAY_OF_MONTH);
+        String todayStr = iso.format(new Date());
+        float gx = calCard.left + (cardW - 7 * cellW) / 2f;
+        float gy = calCard.top + headH + monthH + weekH;
+        for (int i = 0; i < 42; i++) {
+            int day = i - firstDow + 1;
+            float cx = gx + cellW * (i % 7) + cellW / 2f;
+            float cy = gy + calCell * (i / 7) + calCell / 2f;
+            calCells[i].set(cx - cellW / 2f, cy - calCell / 2f, cx + cellW / 2f, cy + calCell / 2f);
+            float r = Math.min(cellW, calCell) * 0.40f;
+            calRings[i].set(cx - r, cy - r, cx + r, cy + r);
+            if (day < 1 || day > dim) {
+                calDates[i] = null;
+                calUsable[i] = false;
+                calLit[i] = false;
+                calBack[i] = false;
+            } else {
+                String ds = String.format(java.util.Locale.US, "%04d-%02d-%02d", calYear, calMonth + 1, day);
+                calDates[i] = ds;
+                calUsable[i] = DayEdit.canBackfill(ds, todayStr);
+                calLit[i] = days.contains(ds);
+                calBack[i] = backfilled.contains(ds);
+            }
+        }
+    }
+
+    private void drawCalendar(Canvas c) {
+        float target = calOpen ? 1f : 0f;
+        calT += (target - calT) * 0.26f;
+        if (Math.abs(target - calT) < 0.002f) calT = target;
+        if (calT <= 0.002f) return;
+        float ease = 1 - (float) Math.pow(1 - calT, 3);
+        if (calDirty || calLastW != W || calLastH != H) {
+            layoutCalendar();
+            calLastW = W;
+            calLastH = H;
+            calDirty = false;
+        }
+        if (calCard.isEmpty()) return;
+
+        p.reset();
+        p.setStyle(Paint.Style.FILL);
+        p.setColor(0xFF03040A);
+        p.setAlpha((int) (192 * ease));
+        c.drawRect(0, 0, W, H, p);
+        p.setAlpha(255);
+
+        glassPlate(c, calCard, 22 * dp, 140, 0, ease);
+
+        // 内边距必须与 layoutCalendar 保持一致，否则绘制与命中区会错位
+        float inset = 14 * dp;
+        int a = (int) (255 * ease);
+        String todayStr = iso.format(new Date());
+
+        // 标题 + 可选范围（规则写在标题旁，不再占用日格空间）
+        text(c, "补记哪一天", calCard.left + inset + 4 * dp, calCard.top + 32 * dp,
+                16.5f, C_TEXT, Math.min(240, a), 1.6f, true);
+        textRight(c, "今天及以前 · 近五年", calCard.right - inset - 2 * dp, calCard.top + 24 * dp,
+                8.4f, C_DIM, (int) (120 * ease));
+
+        // 月份切换
+        float my = calCard.top + 50 * dp + 19 * dp + 5 * dp;
+        p.setStyle(Paint.Style.STROKE);
+        p.setStrokeWidth(1.6f * dp);
+        p.setColor(C_WARM);
+        p.setAlpha((int) (210 * ease));
+        float ax = calPrevBtn.centerX(), ay = calPrevBtn.centerY();
+        c.drawLine(ax + 3.4f * dp, ay - 5.2f * dp, ax - 3 * dp, ay, p);
+        c.drawLine(ax - 3 * dp, ay, ax + 3.4f * dp, ay + 5.2f * dp, p);
+        boolean nextOn = canShiftForward();
+        p.setColor(nextOn ? C_WARM : C_DIM);
+        p.setAlpha((int) ((nextOn ? 210 : 90) * ease));
+        ax = calNextBtn.centerX();
+        c.drawLine(ax - 3.4f * dp, ay - 5.2f * dp, ax + 3 * dp, ay, p);
+        c.drawLine(ax + 3 * dp, ay, ax - 3.4f * dp, ay + 5.2f * dp, p);
+        textCenter(c, calYear + " 年 " + (calMonth + 1) + " 月", calCard.centerX(), my,
+                13.5f, C_TEXT, Math.min(225, a), 0.8f);
+
+        // 星期表头
+        String[] wk = {"日", "一", "二", "三", "四", "五", "六"};
+        float wkY = calCells[0].top - 7 * dp;
+        for (int i = 0; i < 7; i++) {
+            textCenter(c, wk[i], calCells[i].centerX(), wkY, 8.5f, C_DIM, (int) (130 * ease), 0f);
+        }
+
+        // 日格
+        for (int i = 0; i < 42; i++) {
+            if (calDates[i] == null) continue;
+            float cx = calCells[i].centerX(), cy = calCells[i].centerY();
+            float r = calRings[i].width() / 2f;
+            boolean isToday = calDates[i].equals(todayStr);
+
+            if (isToday) {
+                p.setStyle(Paint.Style.STROKE);
+                p.setStrokeWidth(1.2f * dp);
+                p.setColor(C_WARM);
+                p.setAlpha((int) (150 * ease));
+                c.drawCircle(cx, cy, r, p);
+            }
+            if (calPressed == i) {
+                p.setStyle(Paint.Style.FILL);
+                p.setColor(0xFFFFFFFF);
+                p.setAlpha((int) (30 * ease));
+                c.drawCircle(cx, cy, r, p);
+            }
+            if (calLit[i]) {
+                p.setStyle(calBack[i] ? Paint.Style.STROKE : Paint.Style.FILL);
+                p.setStrokeWidth(1f * dp);
+                p.setColor(C_WARM);
+                p.setAlpha((int) ((calBack[i] ? 150 : 210) * ease));
+                c.drawCircle(cx, cy + r + 2.6f * dp, 1.6f * dp, p);
+            }
+            int ta = calUsable[i] ? 238 : 84;
+            textCenter(c, String.valueOf(Integer.parseInt(calDates[i].substring(8, 10))),
+                    cx, cy + 4.4f * dp, 12.5f,
+                    calUsable[i] ? C_TEXT : C_DIM, (int) (ta * ease), 0f);
+        }
+
+        // 底部：取消胶囊 + 图例
+        float fy = calCloseBtn.centerY() + 4 * dp;
+        p.setStyle(Paint.Style.STROKE);
+        p.setStrokeWidth(1f * dp);
+        p.setColor(C_WARM);
+        p.setAlpha((int) ((calPressed == -2 ? 120 : 62) * ease));
+        c.drawRoundRect(calCloseBtn, calCloseBtn.height() / 2f, calCloseBtn.height() / 2f, p);
+        textCenter(c, "取消", calCloseBtn.centerX(), fy, 11.5f, C_WARM,
+                (int) (205 * ease), 0.6f);
+        textRight(c, "实心点 已点亮 · 空心点 补记", calCard.right - inset - 2 * dp, fy, 8.4f,
+                C_DIM, (int) (118 * ease));
+    }
+
+    private boolean canShiftForward() {
+        java.util.Calendar now = java.util.Calendar.getInstance();
+        int ty = now.get(java.util.Calendar.YEAR);
+        int tm = now.get(java.util.Calendar.MONTH);
+        return calYear < ty || (calYear == ty && calMonth < tm);
+    }
+
+    private boolean onCalendarTouch(MotionEvent e, float x, float y) {
+        int act = e.getActionMasked();
+        if (act == MotionEvent.ACTION_DOWN) {
+            calPressed = -1;
+            if (hitPad(calCloseBtn, x, y, 7 * dp)) {
+                calPressed = -2;
+            } else if (hitPad(calPrevBtn, x, y, 6 * dp)) {
+                calPressed = -3;
+            } else if (hitPad(calNextBtn, x, y, 6 * dp)) {
+                calPressed = -4;
+            } else {
+                for (int i = 0; i < 42; i++) {
+                    if (calUsable[i] && hitPad(calCells[i], x, y, 3 * dp)) {
+                        calPressed = i;
+                        break;
+                    }
+                }
+            }
+            if (calPressed == -1 && !calCard.contains(x, y)) calPressed = -2;  // 点卡片外 = 收起
+            invalidate();
+            return true;
+        }
+        if (act == MotionEvent.ACTION_UP || act == MotionEvent.ACTION_CANCEL) {
+            int was = calPressed;
+            calPressed = -1;
+            if (act == MotionEvent.ACTION_UP) {
+                if (was == -2 && (hitPad(calCloseBtn, x, y, 7 * dp) || !calCard.contains(x, y))) {
+                    closeCalendar();
+                    return true;
+                }
+                if (was == -3 && hitPad(calPrevBtn, x, y, 6 * dp)) {
+                    shiftMonth(-1);
+                    return true;
+                }
+                if (was == -4 && hitPad(calNextBtn, x, y, 6 * dp)) {
+                    shiftMonth(1);
+                    return true;
+                }
+                if (was >= 0 && calDates[was] != null && hitPad(calCells[was], x, y, 3 * dp)) {
+                    String d = calDates[was];
+                    // 选完立刻收日历，避免淡出遮罩压住紧随其后的选色环
+                    calOpen = false;
+                    calT = 0f;
+                    calPressed = -1;
+                    performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY);
+                    beginBackfill(d);
+                    return true;
+                }
+            }
+            invalidate();
+            return true;
+        }
+        return true;
+    }
+
     /** v6.1 宿主选定补记日期后进入选色环。 */
     void beginBackfill(String date) {
         if (!DayEdit.canBackfill(date, iso.format(new Date()))) return;
@@ -2376,7 +2799,10 @@ public class StarFieldView extends View {
 
     /** v6.2 抹掉后的撤销条：5 秒内点一下就长回来。 */
     private void drawUndo(Canvas c, long now) {
-        boolean live = undoDate != null && now <= undoUntil;
+        // v6.3 修正：undoUntil 存的是 System.nanoTime() 绝对毫秒，而传入的 now 是相对 t0 的毫秒，
+        // 直接比较恒成立，胶囊 5 秒后不会消失。这里统一换成绝对时钟。
+        long absNow = System.nanoTime() / 1000000L;
+        boolean live = undoDate != null && absNow <= undoUntil;
         float target = live ? 1f : 0f;
         undoT += (target - undoT) * 0.24f;
         if (Math.abs(target - undoT) < 0.004f) undoT = target;
@@ -2405,7 +2831,7 @@ public class StarFieldView extends View {
         c.drawRoundRect(undoRect, h / 2f, h / 2f, p);
 
         // 剩下的秒数做成一条细进度
-        long left = Math.max(0, undoUntil - now);
+        long left = Math.max(0, undoUntil - absNow);
         float ratio = Math.max(0f, Math.min(1f, left / (float) UNDO_MS));
         p.setStyle(Paint.Style.FILL);
         p.setColor(0xFFFFD9A0);

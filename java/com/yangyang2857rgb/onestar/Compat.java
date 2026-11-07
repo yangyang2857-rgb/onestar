@@ -56,6 +56,19 @@ public final class Compat {
         return CompatTable.pageNote(pageSize(), NativeCore.PAGE);
     }
 
+    /** App 自身版本号（跟着 Manifest 走，改版本时不用再手改 UI 文案）。 */
+    public static String appVersion(Context c) {
+        try {
+            android.content.pm.PackageInfo pi =
+                    c.getPackageManager().getPackageInfo(c.getPackageName(), 0);
+            if (pi != null && pi.versionName != null && pi.versionName.length() > 0) {
+                return pi.versionName;
+            }
+        } catch (Throwable ignored) {
+        }
+        return "6.3";
+    }
+
     public static int memoryClass(Context c) {
         try {
             ActivityManager am = (ActivityManager) c.getSystemService(Context.ACTIVITY_SERVICE);

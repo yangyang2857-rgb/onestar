@@ -203,7 +203,8 @@ public class MainActivity extends Activity implements StarFieldView.Host,
                             public void onBackInvoked() {
                                 runOnUiThread(new Runnable() {
                                     public void run() {
-                                        animateBackToRest();
+                                        // v6.4：提交时顺着方向继续滑出，不再先弹回再消失
+                                        if (view != null) view.animateBackOut();
                                         onPredictiveBack();
                                     }
                                 });
@@ -223,31 +224,25 @@ public class MainActivity extends Activity implements StarFieldView.Host,
         }
     }
 
-    /** 跟手位移：进度 0→1，整个星图轻微缩小、后退并变淡，像被手指推走。 */
+    /** 跟手位移：进度 0→1，面板本身右移让位；星空保持不动。 */
     private void applyBackProgress(float p) {
         if (view == null) return;
+        // v6.3：预测式返回只服务「星图面板」与「系统面板」本身。
+        // 面板没开时不做任何位移，否则星空会像整页要被退掉。
         float k = Math.max(0f, Math.min(1f, p));
-        float dp = getResources().getDisplayMetrics().density;
-        view.setPivotX(view.getWidth() * 0.5f);
-        view.setPivotY(view.getHeight() * 0.5f);
-        view.setScaleX(1f - 0.05f * k);
-        view.setScaleY(1f - 0.05f * k);
-        view.setTranslationX(-18f * dp * k);
-        view.setAlpha(1f - 0.32f * k);
-        if (view.getParent() instanceof View) {
-            ((View) view.getParent()).setBackgroundColor(Color.BLACK);
-        }
+        if (!view.hasPanelOpen()) k = 0f;
+        view.setBackProgress(k);
     }
 
-    /** 松手（取消或提交）后 220ms 弹回原样。 */
+    /** 松手（取消或提交）后 180ms 弹回原样。 */
     private void animateBackToRest() {
         if (view == null) return;
         backAnimating = false;
-        view.animate().scaleX(1f).scaleY(1f).translationX(0f).alpha(1f)
-                .setDuration(220L).start();
+        view.animateBackRest();
     }
 
     private void onPredictiveBack() {
+        if (view != null && view.closeCalendar()) return;
         if (view != null && view.closePanels()) return;
         if (isLandscapeNow()) {
             setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
@@ -259,6 +254,7 @@ public class MainActivity extends Activity implements StarFieldView.Host,
     @Override
     public void onBackPressed() {
         // 老系统（< 33）走这里；新系统由 OnBackInvokedCallback 接管
+        if (view != null && view.closeCalendar()) return;
         if (view != null && view.closePanels()) return;
         if (isLandscapeNow()) {
             setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
@@ -459,39 +455,13 @@ public class MainActivity extends Activity implements StarFieldView.Host,
     }
 
     /**
-     * v6.1 补记：原生日期选择器，只能选今天及以前、最近五年之内。
-     * 选完交给自绘层进入「选一种颜色」的流程。
+     * v6.3 补记：改用自绘星历。
+     * v6.1 的原生 DatePickerDialog 与整体夜空视觉割裂、也无法显示「哪些天已经有星」，
+     * 这里只负责打开，日期范围与已点亮的标记都由 StarFieldView 内部处理。
      */
     @Override
     public void pickBackfillDate() {
-        final java.util.Calendar cal = java.util.Calendar.getInstance();
-        final java.text.SimpleDateFormat f =
-                new java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US);
-        final String todayStr = f.format(new java.util.Date());
-
-        android.app.DatePickerDialog dlg = new android.app.DatePickerDialog(this,
-                new android.app.DatePickerDialog.OnDateSetListener() {
-                    public void onDateSet(android.widget.DatePicker picker, int y, int mo, int da) {
-                        String date = String.format(java.util.Locale.US, "%04d-%02d-%02d", y, mo + 1, da);
-                        if (!DayEdit.canBackfill(date, todayStr)) {
-                            Toast.makeText(MainActivity.this,
-                                    "只能补记今天之前的五年以内", Toast.LENGTH_SHORT).show();
-                            return;
-                        }
-                        if (view != null) view.beginBackfill(date);
-                    }
-                },
-                cal.get(java.util.Calendar.YEAR),
-                cal.get(java.util.Calendar.MONTH),
-                cal.get(java.util.Calendar.DAY_OF_MONTH));
-
-        dlg.getDatePicker().setMaxDate(System.currentTimeMillis());
-        dlg.setOnDismissListener(new DialogInterface.OnDismissListener() {
-            public void onDismiss(DialogInterface di) {
-                applyImmersive();
-            }
-        });
-        dlg.show();
+        if (view != null) view.openCalendar();
     }
 
     /** v6.1 补记 / 换色 / 抹掉后的轻提示。 */

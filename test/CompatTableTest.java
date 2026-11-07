@@ -37,9 +37,12 @@ public class CompatTableTest {
         eq("pageZero", CompatTable.pageLabel(0), "? KB");
         eq("is16kYes", CompatTable.is16k(16384), true);
         eq("is16kNo", CompatTable.is16k(4096), false);
-        eq("note16k", CompatTable.pageNote(16384, true), "16 KB 页 · 页表更省");
-        eq("note4k-native", CompatTable.pageNote(4096, true), "4 KB 页 · 原生库已 16 KB 对齐");
+        eq("note16k", CompatTable.pageNote(16384, true), "16 KB 页 · 原生库已按 16 KB 对齐");
+        eq("note16k-pure", CompatTable.pageNote(16384, false), "16 KB 页 · 无原生库 · 天然兼容");
+        eq("note4k-native", CompatTable.pageNote(4096, true), "4 KB 页 · 原生库已按 16 KB 对齐");
         eq("note4k-pure", CompatTable.pageNote(4096, false), "4 KB 页 · 无原生库 · 天然兼容");
+        eq("compat-native", CompatTable.pageCompat(true), "原生库已按 16 KB 对齐");
+        eq("compat-pure", CompatTable.pageCompat(false), "无原生库 · 天然兼容");
 
         eq("badge0", CompatTable.memBadge(0), "标准档");
         eq("badge1", CompatTable.memBadge(1), "已让位");
