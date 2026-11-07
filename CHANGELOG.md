@@ -2,6 +2,11 @@
 
 版本号与 `AndroidManifest.xml` 中的 `versionName` 一致；括号内为 `versionCode`。
 
+## v5.2 (13)
+
+- **16 KB 页对齐**：新增 `tools/zip16k.py`，`.so` 以 STORED 存放并把数据偏移对齐到 16384
+- 构建脚本改为纯命令行链路，彻底移除 Gradle 依赖
+
 ## v5.1 (12)
 
 - 系统面板排版修复
