@@ -2,6 +2,11 @@
 
 版本号与 `AndroidManifest.xml` 中的 `versionName` 一致；括号内为 `versionCode`。
 
+## v5.1 (12)
+
+- 系统面板排版修复
+- 移除若干无效绘制调用
+
 ## v5.0 (11)
 
 - 系统适配版：接入不同 Android 版本的页大小、内存档位、显示特性读取
