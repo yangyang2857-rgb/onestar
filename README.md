@@ -80,11 +80,11 @@ ONESTAR_KS=release.keystore ONESTAR_KS_PASS=****** ONESTAR_KS_ALIAS=onestar \
 JAVA_HOME=/path/to/jdk-17 ./test.sh
 ```
 
-`test.sh` 会自动挑出不 `import android.*` 的纯逻辑类，与 `test/` 下的断言程序一起用普通 `javac` 编译，然后逐个跑 `main`。目前 7 个测试类、共 218 项断言：
+`test.sh` 会自动挑出不 `import android.*` 的纯逻辑类，与 `test/` 下的断言程序一起用普通 `javac` 编译，然后逐个跑 `main`。目前 7 个测试类、共 221 项断言：
 
 | 测试类 | 覆盖对象 | 断言数 |
 | --- | --- | --- |
-| `CompatTableTest` | 系统版本 / 页大小 / 内存档位映射 | 35 |
+| `CompatTableTest` | 系统版本 / 页大小 / 内存档位映射 / 页大小说明文案 | 38 |
 | `V4LogicTest` | 星轨回放与曲线取样 | 59 |
 | `ConstellationTest` | 星座与星名生成 | 31 |
 | `V62LogicTest` | 补记标记、撤销快照的编解码兼容 | 26 |
