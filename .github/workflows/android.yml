@@ -33,13 +33,13 @@ jobs:
           chmod +x "$(python3 -c 'import ziglang,os;print(os.path.join(os.path.dirname(ziglang.__file__),"zig"))')" || true
 
       - name: Unit tests (纯 JVM，无 Gradle)
-        run: ./test.sh
+        run: bash ./test.sh
 
       - name: Build APK (aapt2 + javac + d8 + apksigner)
         env:
           ANDROID_HOME: ${{ env.ANDROID_SDK_ROOT }}
           BUILD_TOOLS: '34.0.0'
-        run: ./build.sh
+        run: bash ./build.sh
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
