@@ -1,9 +1,26 @@
 #!/usr/bin/env bash
 # 拾光 OneStar — 纯 JVM 逻辑单测（不需要模拟器、不需要 android.jar）
 #
-# 做法：把不依赖 android.* 的纯逻辑类（CompatTable / DaysCodec / DayEdit / Constellation /
-# NoteText / Melody / MoodCurve / NativeCore / Replay / StarName / WidgetState）与 test/ 下的
-# 断言程序一起用 javac 编译到 build/test-classes，再逐个跑 main。
+# 做法：把不依赖 android.* 的纯逻辑类与 test/ 下的断言程序一起用 javac 编译到
+# build/test-classes，再逐个跑 main。
+#
+# 参与编译的纯逻辑类（12 个，靠「不 import android.*」自动筛出来，不写死清单）：
+#   CompatTable / DaysCodec / DayEdit / Constellation / I18n / Melody / MoodCurve /
+#   NativeCore / NoteText / Replay / StarName / WidgetState
+#
+# 断言程序（9 个入口）：
+#   test/CompatTableTest.java                     系统能力表
+#   test/I18nTableTest.java                       文案表：15 语言全覆盖、占位符对齐、语言判定
+#   test/com/.../I18nTest.java                    外语模式不许漏汉字（跨逻辑类联动）
+#   test/com/.../ConstellationTest.java           星座与星名
+#   test/com/.../DayEditTest.java                 日记录编辑状态机
+#   test/com/.../MelodyTest.java                  旋律序列与节拍
+#   test/com/.../NoteTextTest.java                备注折行与截断
+#   test/com/.../V4LogicTest.java                 星轨回放与曲线取样
+#   test/com/.../V62LogicTest.java                补记标记、撤销快照的编解码兼容
+#
+# 两个 I18n 测试分工不同、都不能省：I18nTableTest 查「表本身对不对」，
+# I18nTest 查「别的类在多语言下有没有漏翻」，后者能抓到前者覆盖不到的调用点回归。
 # 好处：存储编码、版本映射、心情曲线这类易回归的逻辑，改完立刻能验，不必等 APK。
 #
 # 用法：JAVA_HOME=/path/to/jdk17 ./test.sh

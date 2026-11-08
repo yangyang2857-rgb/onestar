@@ -80,7 +80,7 @@ ONESTAR_KS=release.keystore ONESTAR_KS_PASS=****** ONESTAR_KS_ALIAS=onestar \
 JAVA_HOME=/path/to/jdk-17 ./test.sh
 ```
 
-`test.sh` 会自动挑出不 `import android.*` 的纯逻辑类，与 `test/` 下的断言程序一起用普通 `javac` 编译，然后逐个跑 `main`。目前 7 个测试类、共 221 项断言：
+`test.sh` 会自动挑出不 `import android.*` 的纯逻辑类，与 `test/` 下的断言程序一起用普通 `javac` 编译，然后逐个跑 `main`。目前 9 个测试类、共 3131 项断言（其中前 7 类合计 221 项，多语言两层合计 2910 项）：
 
 | 测试类 | 覆盖对象 | 断言数 |
 | --- | --- | --- |
@@ -91,6 +91,8 @@ JAVA_HOME=/path/to/jdk-17 ./test.sh
 | `NoteTextTest` | 备注文本折行与截断 | 24 |
 | `DayEditTest` | 日记录编辑状态机 | 23 |
 | `MelodyTest` | 旋律序列与节拍 | 20 |
+| `I18nTableTest` | 多语言表完整性、语言判定、日期/数字本地化 | 2818 |
+| `I18nTest`（`com.yangyang2857rgb.onestar` 包） | 外语模式下各逻辑类输出不得残留汉字 | 92 |
 
 这类"把可纯化的逻辑抽出来，用 JVM 断言兜住"的做法，是这个工程能长期手工演进而不至于崩掉的主要原因。
 
@@ -105,11 +107,15 @@ JAVA_HOME=/path/to/jdk-17 ./test.sh
 │   └── COPYRIGHT.txt            # 署名信息（随 APK 打包，也用于版本内说明）
 ├── java/com/yangyang2857rgb/onestar/
 │   ├── MainActivity.java        # 入口，手势/生命周期
-│   ├── StarFieldView.java       # 核心自绘视图（体量最大，约 2.4k 行）
+│   ├── StarFieldView.java       # 核心自绘视图（2966 行）
+│   ├── I18n.java                # 15 种语言文案表（3242 行，全仓最大）
+│   ├── TextDraw.java            # Canvas 文字绘制与 RTL 视觉重排
 │   ├── DaysStore.java           # SharedPreferences 存储读写
 │   ├── DaysCodec.java           # 记录行编码/解析（纯逻辑，可单测）
 │   ├── DayEdit.java             # 编辑状态机（纯逻辑）
 │   ├── Constellation.java       # 星座/星名（纯逻辑）
+│   ├── StarName.java            # 星名中英对照（纯逻辑）
+│   ├── ChimePlayer.java         # 提示音播放
 │   ├── MoodCurve.java           # 心情曲线采样
 │   ├── Replay.java              # 星轨回放
 │   ├── Melody.java              # 提示音旋律
@@ -122,7 +128,7 @@ JAVA_HOME=/path/to/jdk-17 ./test.sh
 ├── jni/
 │   ├── include/                 # 交叉编译所需的极简头
 │   └── src/{ons_page,ons_dsp,ons_curve}.c
-├── res/                         # 手写 drawable / mipmap / xml
+├── res/                         # 手写 drawable / mipmap / xml（含 locales_config.xml）
 ├── tools/zip16k.py              # 16 KB 对齐重打包
 └── test/                        # 纯 JVM 断言程序
 ```
@@ -147,8 +153,9 @@ Android 15 起部分设备使用 16 KB 内存页，未按 16 KB 对齐的 `.so` 
 
 - 只构建 `arm64-v8a`；需要其他 ABI 时改 `ABIS` 并自行加交叉工具链目标
 - 界面坐标按竖屏固定比例手算，极端屏幕比例下需要调参
-- 签名使用构建时生成的 debug keystore 时**不能用于分发**，仅用于验证构建链
-- 多语言只做了中文与英文两种（`I18n.java` 双常量 + `res/values-en`），没有引入第三方 i18n 框架；未做无障碍完整适配（自绘视图的 `contentDescription` 覆盖有限）
+- Release 页面与 CI 产物使用的是仓库内固定生成的 **debug 证书**签名。这样做的目的是让每次构建的证书指纹一致、已装用户可以直接覆盖升级；代价是这个证书对所有人可见，任何人都能伪造同签名名的更新包，因此它只适合自用、体验与验证构建链，**不能上架应用商店，也不适合对外分发**。要正式分发必须换成自己的 release keystore（`ONESTAR_KS` / `ONESTAR_KS_PASS`），届时老用户需要卸载重装才能升级
+- 多语言覆盖 15 种语言（简繁中文、英、日、韩、法、德、西班牙（西班牙/拉美）、阿拉伯、泰、巴西/欧洲葡萄牙、藏、维吾尔），全部由 `I18n.java` 的文案表与 `TextDraw` 的 RTL 重排实现，没有引入第三方 i18n 框架；界面文案不依赖 `res/values-*`，`res` 里只有系统读取的图标名、小组件标题等少数条目，并由 `res/xml/locales_config.xml` 接入 Android 13 的「应用语言」入口
+- 未做无障碍完整适配（自绘视图的 `contentDescription` 覆盖有限）
 
 ## 8. 版本
 

@@ -5,7 +5,7 @@ Copyright (c) 2026 王孙阳 (Wang Sunyang). All rights reserved.
 名称：拾光（OneStar）
 包名：com.yangyang2857rgb.onestar
 首次完成：2026 年 11 月 4 日
-本版本：v6.2（versionCode 17），2026 年 11 月 8 日
+本版本：v6.7（versionCode 22），2026 年 11 月 8 日
 开发者：王孙阳（独立开发）
 
 权利声明

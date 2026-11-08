@@ -30,6 +30,31 @@ ABI="${ABIS:-arm64-v8a}"
 log() { printf '\033[36m== %s\033[0m\n' "$*"; }
 die() { printf '\033[31m!! %s\033[0m\n' "$*" >&2; exit 1; }
 
+# ---------- 0. 版本自检 ----------
+# versionCode 是独立整数流水号，与 versionName 没有换算关系（规则见 CHANGELOG.md）。
+# 这里拦两类低级错误：versionCode 不比历史最大值大（系统会当降级，老用户装不上），
+# 以及 assets/COPYRIGHT.txt 里写的版本号没跟 AndroidManifest.xml 同步（APK 内署名信息会过期）。
+# 确需跳过（例如只做本地实验搭建）时设 SKIP_VERSION_CHECK=1。
+if [ "${SKIP_VERSION_CHECK:-0}" != "1" ]; then
+  HISTORY_CODE=22   # 已发布 tag 里最大的 versionCode：v6.7
+  VNAME="$(sed -n 's/.*android:versionName="\([^"]*\)".*/\1/p' AndroidManifest.xml | head -1)"
+  VCODE="$(sed -n 's/.*android:versionCode="\([^"]*\)".*/\1/p' AndroidManifest.xml | head -1)"
+  [ -n "$VNAME" ] || die "AndroidManifest.xml 里读不到 android:versionName"
+  [ -n "$VCODE" ] || die "AndroidManifest.xml 里读不到 android:versionCode"
+  case "$VCODE" in
+    ''|*[!0-9]*) die "versionCode 必须是整数，当前是「$VCODE」" ;;
+  esac
+  case "$VNAME" in
+    [0-9]*.[0-9]*) : ;;
+    *) die "versionName 必须形如 6.7 或 1.0.0，当前是「$VNAME」" ;;
+  esac
+  [ "$VCODE" -ge "$HISTORY_CODE" ] \
+    || die "versionCode=$VCODE 小于历史最大值 $HISTORY_CODE；发版时手动 +1，别复用旧号"
+  grep -q "本版本：v$VNAME（versionCode $VCODE）" assets/COPYRIGHT.txt \
+    || die "assets/COPYRIGHT.txt 的「本版本」与清单不一致（应为 v$VNAME / versionCode $VCODE），先同步"
+  log "版本自检通过：$VNAME（versionCode $VCODE）"
+fi
+
 # ---------- 1. 定位 SDK ----------
 SDK="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-}}"
 [ -n "$SDK" ] || die "未设置 ANDROID_HOME / ANDROID_SDK_ROOT"

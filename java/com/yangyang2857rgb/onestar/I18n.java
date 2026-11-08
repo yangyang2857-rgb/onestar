@@ -2875,11 +2875,6 @@ public final class I18n {
         return NATIVE_NAMES[lang];
     }
 
-    /** v6.5 兼容：是否英文界面。 */
-    public static boolean en() {
-        return lang == EN;
-    }
-
     /** 是否从右往左书写（阿拉伯语、维吾尔语）。Canvas 手绘文字要先做视觉重排。 */
     public static boolean rtl() {
         return lang == AR || lang == UG;

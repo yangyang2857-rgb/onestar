@@ -1,4 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+  versionCode 是独立流水号，与 versionName 无换算关系：只增不减、永不复用（v6.5=20 / v6.6=21 / v6.7=22）。
+  规则见 CHANGELOG.md，build.sh 会在构建前校验它不小于历史最大值。
+-->
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.yangyang2857rgb.onestar"
     android:versionCode="22"
@@ -15,6 +19,7 @@
         android:extractNativeLibs="false"
         android:hardwareAccelerated="true"
         android:enableOnBackInvokedCallback="true"
+        android:localeConfig="@xml/locales_config"
         android:theme="@android:style/Theme.NoTitleBar.Fullscreen">
 
         <activity

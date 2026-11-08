@@ -1,14 +1,16 @@
 import com.yangyang2857rgb.onestar.I18n;
 
 /**
- * v6.6 多语言层纯逻辑单测：不依赖 Android，javac + java 直接跑。
+ * 多语言文案表纯逻辑单测：不依赖 Android，javac + java 直接跑。
+ *
+ * 同包内的 I18nTest 只验「外语模式下各逻辑类不残留汉字」，本类负责文案表本身。
  *
  * 三类断言：
  * 1) 表完整性 —— 15 种语言、每行都有译文、占位符数量与中文原文对得上；
  * 2) 语言判定 —— detect/forceTag 覆盖zh-Hant/ja/ko/fr/de/es/es-419/ar/th/pt-BR/pt-PT/bo/ug；
  * 3) 输出正确 —— 非中日语言不得漏出汉字，日期/数字/引号按语言变形。
  */
-public class I18nTest {
+public class I18nTableTest {
     static int pass = 0;
     static int fail = 0;
 

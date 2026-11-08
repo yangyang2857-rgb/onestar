@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Android 13（API 33）起系统提供「应用语言」入口，设置里能单独给本应用换语言。
+  这里列出 I18n.java 实际支持的 15 种语言（顺序与 I18n.TAGS 保持一致），
+  低于 33 的系统会忽略这个文件，语言仍由 I18n.detect() 跟随系统语言。
+-->
+<locale-config xmlns:android="http://schemas.android.com/apk/res/android">
+    <locale android:name="zh" />
+    <locale android:name="zh-Hant" />
+    <locale android:name="en" />
+    <locale android:name="ja" />
+    <locale android:name="ko" />
+    <locale android:name="fr" />
+    <locale android:name="de" />
+    <locale android:name="es" />
+    <locale android:name="es-419" />
+    <locale android:name="ar" />
+    <locale android:name="th" />
+    <locale android:name="pt-BR" />
+    <locale android:name="pt-PT" />
+    <locale android:name="bo" />
+    <locale android:name="ug" />
+</locale-config>
