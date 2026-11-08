@@ -2,6 +2,11 @@
 
 版本号与 `AndroidManifest.xml` 中的 `versionName` 一致；括号内为 `versionCode`。
 
+## v6.1 (16)
+
+- 面板层级与返回行为整理，修复面板叠加时的触摸吞掉问题
+- 星名生成规则补充
+
 ## v6.0 (15)
 
 - 应用图标重绘（1024 px 母版），补 `mipmap-anydpi-v26` 自适应图标
