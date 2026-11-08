@@ -2,6 +2,11 @@
 
 版本号与 `AndroidManifest.xml` 中的 `versionName` 一致；括号内为 `versionCode`。
 
+## v6.0 (15)
+
+- 应用图标重绘（1024 px 母版），补 `mipmap-anydpi-v26` 自适应图标
+- 桌面小组件视觉统一
+
 ## v5.3 (14)
 
 - 系统信息面板重排，版本/页大小/内存档位展示改为表格化
