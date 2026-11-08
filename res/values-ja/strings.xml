@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- System-level strings (launcher label, widget title, a11y) for values-ja. -->
+<resources>
+    <string name="app_name">OneStar</string>
+    <string name="widget_label">OneStar · 今日の星</string>
+    <string name="widget_desc">ホーム画面の星。タップして今日を灯そう</string>
+    <string name="widget_hint">OneStar · 待機中</string>
+    <string name="widget_line1">今日はまだ灯していません</string>
+    <string name="widget_line2">タップして夜空にひとつ灯す</string>
+</resources>

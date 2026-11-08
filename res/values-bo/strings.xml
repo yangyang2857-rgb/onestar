@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- System-level strings (launcher label, widget title, a11y) for values-bo. -->
+<resources>
+    <string name="app_name">OneStar</string>
+    <string name="widget_label">OneStar · དེ་རིང་གི་སྐར་མ།</string>
+    <string name="widget_desc">ཁྱིམ་ཤོག་གི་སྐར་མ་གཅིག ། དེ་རིང་བརྒྱན་པར་ཐུག་རོགས།</string>
+    <string name="widget_hint">OneStar · མ་བརྒྱན།</string>
+    <string name="widget_line1">དེ་རིང་ད་དུང་མ་བརྒྱན།</string>
+    <string name="widget_line2">ཐུག་ནས་ནམ་མཁར་གཅིག་བཞག</string>
+</resources>

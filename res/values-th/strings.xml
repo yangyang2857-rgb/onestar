@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- System-level strings (launcher label, widget title, a11y) for values-th. -->
+<resources>
+    <string name="app_name">วันสตาร์</string>
+    <string name="widget_label">วันสตาร์ · ดาวของวันนี้</string>
+    <string name="widget_desc">ดาวดวงหนึ่งบนหน้าจอหลัก แตะเพื่อจุดวันนี้</string>
+    <string name="widget_hint">วันสตาร์ · ยังไม่จุด</string>
+    <string name="widget_line1">วันนี้ยังไม่ถูกจุด</string>
+    <string name="widget_line2">แตะเพื่อวางดาวหนึ่งดวงบนท้องฟ้า</string>
+</resources>

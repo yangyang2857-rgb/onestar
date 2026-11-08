@@ -343,7 +343,7 @@ public class MainActivity extends Activity implements StarFieldView.Host,
         try {
             int mo = Integer.parseInt(date.substring(5, 7));
             int da = Integer.parseInt(date.substring(8, 10));
-            title = I18n.en() ? I18n.date(mo, da) + " · Note" : mo + "月" + da + "日 · 一句话";
+            title = I18n.date(mo, da) + " · " + I18n.t("一句话", "Note");
         } catch (Exception e) {
             title = I18n.t("一句话", "Note");
         }
@@ -398,9 +398,9 @@ public class MainActivity extends Activity implements StarFieldView.Host,
         try {
             int mo = Integer.parseInt(date.substring(5, 7));
             int da = Integer.parseInt(date.substring(8, 10));
-            title = I18n.en() ? I18n.date(mo, da) + " · Star name" : mo + "月" + da + "日 · 星名";
+            title = I18n.date(mo, da) + " · " + I18n.t("取个名字", "Star name");
         } catch (Exception e) {
-            title = I18n.t("星名", "Star name");
+            title = I18n.t("取个名字", "Star name");
         }
 
         AlertDialog dlg = new AlertDialog.Builder(this,

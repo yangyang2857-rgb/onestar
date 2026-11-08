@@ -62,22 +62,18 @@ final class DayEdit {
         if (!isIso(date)) return date == null ? "" : date;
         int mo = Integer.parseInt(date.substring(5, 7));
         int da = Integer.parseInt(date.substring(8, 10));
-        if (I18n.en()) return I18n.monthShort(mo) + " " + da;
-        return mo + " 月 " + da + " 日";
+        return I18n.date(mo, da);
     }
 
     /** 补记一枚新星时的提示。 */
     static String addedText(String date) {
-        return I18n.en()
-                ? "Brought back " + pretty(date)
-                : "把 " + pretty(date) + " 补回来了";
+        return I18n.f("把 %s 补回来了", "Brought back %s", pretty(date));
     }
 
     /** 补记过去某天时的提示（与当天现点区分开）。 */
     static String backfillText(String date) {
-        return I18n.en()
-                ? "Backfilled · " + pretty(date) + ". This star will remember it was added later."
-                : "补记成功 · " + pretty(date) + "，这颗星会记着它是补上的";
+        return I18n.f("补记成功 · %s，这颗星会记着它是补上的",
+                "Backfilled · %s. This star will remember it was added later.", pretty(date));
     }
 
     /** 长按空白直接补记的引导。 */
@@ -88,16 +84,12 @@ final class DayEdit {
     /** 补记已点亮的那天等同于换色。 */
     static String recoloredText(String date, String moodName) {
         String name = moodName == null ? "" : moodName;
-        return I18n.en()
-                ? pretty(date) + " switched to " + name
-                : pretty(date) + " 换成「" + name + "」";
+        return I18n.f("%1$s 换成「%2$s」", "%1$s switched to %2$s", pretty(date), name);
     }
 
     /** 抹掉某天的提示。 */
     static String removedText(String date) {
-        return I18n.en()
-                ? "Erased the star on " + pretty(date)
-                : "抹掉了 " + pretty(date) + " 那颗星";
+        return I18n.f("抹掉了 %s 那颗星", "Erased the star on %s", pretty(date));
     }
 
     /** 详情卡里的删除按钮文案：第一下问、第二下抹。 */

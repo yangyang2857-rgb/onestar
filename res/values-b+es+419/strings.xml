@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- System-level strings (launcher label, widget title, a11y) for values-b+es+419. -->
+<resources>
+    <string name="app_name">OneStar</string>
+    <string name="widget_label">OneStar · la estrella de hoy</string>
+    <string name="widget_desc">Una estrella en tu pantalla de inicio: toca para encender hoy</string>
+    <string name="widget_hint">OneStar · Sin encender</string>
+    <string name="widget_line1">Hoy sigue a oscuras</string>
+    <string name="widget_line2">Toca para poner una en el cielo</string>
+</resources>

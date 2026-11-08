@@ -789,7 +789,7 @@ public class StarFieldView extends View {
             p.setColor(Constellation.MOOD_COLOR[dm]);
             float veil = Math.max(panelT, peekT);
             p.setAlpha((int) (120 * (1f - Math.min(1f, veil))));
-            c.drawText(nm, tx, ty, p);
+            TextDraw.draw(c, nm, tx, ty, p);
             shown++;
         }
         p.setAlpha(255);
@@ -997,7 +997,8 @@ public class StarFieldView extends View {
         if (!land) {
             text(c, "ONE STAR A DAY", padL, padT - 12 * dp, 9.5f, C_DIM, 150, 3.4f, false);
             text(c, I18n.t("拾光", "OneStar"), padL, padT + 14 * dp, 21, C_TEXT, 235, 1.2f, true);
-            text(c, I18n.t("星穹", "NIGHT SKY"), padL + (I18n.en() ? 86 * dp : 52 * dp),
+            text(c, I18n.t("星穹", "NIGHT SKY"),
+                    padL + textWidth(I18n.t("拾光", "OneStar"), 21, 1.2f, true) + 14 * dp,
                     padT + 14 * dp, 10, C_DIM, 120, 2.2f, false);
             hairline(c, padT + 26 * dp, 56 * dp);
 
@@ -1021,7 +1022,8 @@ public class StarFieldView extends View {
         } else {
             text(c, "ONE STAR A DAY", padL, padT - 12 * dp, 9.5f, C_DIM, 150, 3.4f, false);
             text(c, I18n.t("拾光", "OneStar"), padL, padT + 16 * dp, 23, C_TEXT, 238, 1.2f, true);
-            text(c, I18n.t("星穹", "NIGHT SKY"), padL + (I18n.en() ? 92 * dp : 54 * dp),
+            text(c, I18n.t("星穹", "NIGHT SKY"),
+                    padL + textWidth(I18n.t("拾光", "OneStar"), 23, 1.2f, true) + 14 * dp,
                     padT + 16 * dp, 10, C_DIM, 120, 2.2f, false);
             hairline(c, padT + 29 * dp, 58 * dp);
 
@@ -1031,7 +1033,7 @@ public class StarFieldView extends View {
             p.setColor(C_TEXT);
             p.setAlpha(240);
             p.setTypeface(android.graphics.Typeface.DEFAULT_BOLD);
-            c.drawText(String.valueOf(total), padL, y, p);
+            TextDraw.draw(c, I18n.num(total), padL, y, p);
             float nw = p.measureText(String.valueOf(total));
             p.setTypeface(android.graphics.Typeface.DEFAULT);
             text(c, I18n.t("颗星", "stars"), padL + nw + 8 * dp, y - 4 * dp, 13, C_DIM, 190, 0.8f, false);
@@ -1411,7 +1413,7 @@ public class StarFieldView extends View {
         float px = card.left + 22 * dp;
         float right = card.right - 22 * dp;
         float ry = card.top + headH - 10 * dp;
-        text(c, I18n.t("星图", "Star chart"), px, ry, 17, C_TEXT, 235, 1.4f, true);
+        text(c, I18n.t("星图 · 全年", "Star chart"), px, ry, 17, C_TEXT, 235, 1.4f, true);
         textRight(c, "STAR CHART", right, ry - 2 * dp, 8.5f, C_DIM, 120);
         ry += 10 * dp;
 
@@ -1759,7 +1761,7 @@ public class StarFieldView extends View {
         p.setTextAlign(Paint.Align.LEFT);
         p.setTypeface(bold ? android.graphics.Typeface.DEFAULT_BOLD : android.graphics.Typeface.DEFAULT);
         if (Build.VERSION.SDK_INT >= 21) p.setLetterSpacing(spacing * 0.12f);
-        c.drawText(s, x, y, p);
+        TextDraw.draw(c, s, x, y, p);
     }
 
     private void textRight(Canvas c, String s, float x, float y, float size, int color, int alpha) {
@@ -1769,7 +1771,17 @@ public class StarFieldView extends View {
         p.setAlpha(alpha);
         p.setTextSize(size * dp);
         p.setTextAlign(Paint.Align.RIGHT);
-        c.drawText(s, x, y, p);
+        TextDraw.draw(c, s, x, y, p);
+    }
+
+    /** 与 text() 同参测量宽度：各语言字宽不同，副标题靠主串实际宽度排位。 */
+    float textWidth(String s, float size, float spacing, boolean bold) {
+        p.reset();
+        p.setAntiAlias(true);
+        p.setTextSize(size * dp);
+        p.setTypeface(bold ? android.graphics.Typeface.DEFAULT_BOLD : android.graphics.Typeface.DEFAULT);
+        if (Build.VERSION.SDK_INT >= 21) p.setLetterSpacing(spacing * 0.12f);
+        return p.measureText(I18n.visual(s));
     }
 
     private void textCenter(Canvas c, String s, float x, float y, float size, int color, int alpha, float spacing) {
@@ -1780,7 +1792,7 @@ public class StarFieldView extends View {
         p.setTextSize(size * dp);
         p.setTextAlign(Paint.Align.CENTER);
         if (Build.VERSION.SDK_INT >= 21) p.setLetterSpacing(spacing * 0.12f);
-        c.drawText(s, x, y, p);
+        TextDraw.draw(c, s, x, y, p);
     }
 
     private void pulse() {
@@ -2239,7 +2251,7 @@ public class StarFieldView extends View {
         p.setAlpha((int) (150 * a));
         c.drawCircle(left + padIn + 3 * dp, yName - 3.5f * dp, 1.7f * dp, p);
         p.setAlpha(255);
-        text(c, named ? I18n.t("「" + nm + "」", "\u201C" + nm + "\u201D") : nm,
+        text(c, named ? I18n.quote(nm) : nm,
                 left + padIn + 11 * dp, yName, 12.5f,
                 named ? C_WARM : C_DIM, (int) ((named ? 228 : 130) * a), 0.3f, false);
         textRight(c, I18n.t("星名", "NAME"), left + cw - padIn, yName, 9, C_DIM, (int) (105 * a));
@@ -2699,8 +2711,7 @@ public class StarFieldView extends View {
         ax = calNextBtn.centerX();
         c.drawLine(ax - 3.4f * dp, ay - 5.2f * dp, ax + 3 * dp, ay, p);
         c.drawLine(ax + 3 * dp, ay, ax - 3.4f * dp, ay + 5.2f * dp, p);
-        textCenter(c, I18n.en() ? I18n.monthShort(calMonth + 1) + " " + calYear
-                        : calYear + " 年 " + (calMonth + 1) + " 月",
+        textCenter(c, I18n.monthYear(calYear, calMonth + 1),
                 calCard.centerX(), my,
                 13.5f, C_TEXT, Math.min(225, a), 0.8f);
 

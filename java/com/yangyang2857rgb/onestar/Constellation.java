@@ -43,13 +43,13 @@ final class Constellation {
     /** 心情名：静谧 / Still */
     static String moodName(int i) {
         if (i < 0 || i >= MOOD_N) i = 0;
-        return I18n.en() ? MOOD_NAME_EN[i] : MOOD_NAME[i];
+        return I18n.t(MOOD_NAME[i], MOOD_NAME_EN[i]);
     }
 
     /** 心情词（星座名后缀）：长夜 / Nightfall */
     static String moodWord(int i) {
         if (i < 0 || i >= MOOD_N) i = 0;
-        return I18n.en() ? MOOD_WORD_EN[i] : MOOD_WORD[i];
+        return I18n.t(MOOD_WORD[i], MOOD_WORD_EN[i]);
     }
 
     /** "2026-11-04" -> "2026-11" */
@@ -99,7 +99,10 @@ final class Constellation {
     /** 星数 -> 中文数词："二" "三" … 九以上用"群" */
     static String numCn(int n) {
         if (n <= 0) return "";
-        if (I18n.en()) return n >= 10 ? "Many" : String.valueOf(n);
+        int lg = I18n.lang();
+        if (lg != I18n.ZH && lg != I18n.ZH_HANT) {
+            return n >= 10 ? I18n.t("群", "Many") : I18n.num(n);
+        }
         if (n < NUM_CN.length) return NUM_CN[n];
         return "群";
     }
@@ -114,19 +117,22 @@ final class Constellation {
         int n = monthDays.size();
         if (n == 0) return "";
         int dm = dominantMood(monthDays, mood);
-        if (I18n.en()) {
-            String size;
-            if (n == 1) size = "Lone ";
-            else if (n == 2) size = "Twin ";
-            else if (n >= 10) size = "Many-Star ";
-            else size = n + "-Star ";
-            return mn + " · " + size + moodWord(dm);
+        return I18n.f("%1$s · %2$s%3$s", "%1$s · %2$s%3$s", mn, sizeWord(n), moodWord(dm));
+    }
+
+    /**
+     * 星数词：孤星 / 双星 / 三星 / 群星。
+     * 各语言自行决定是否带尾随空格（中文、日文不带，其余带），拼接模板统一。
+     */
+    static String sizeWord(int n) {
+        if (n <= 0) return "";
+        if (n == 1) return I18n.t("孤星", "Lone ");
+        if (n == 2) return I18n.t("双星", "Twin ");
+        if (n >= 10) return I18n.t("群星", "Many-Star ");
+        if (I18n.lang() == I18n.ZH || I18n.lang() == I18n.ZH_HANT) {
+            return numCn(n) + "星";
         }
-        String num;
-        if (n == 2) num = "双星";
-        else if (n == 1) num = "孤星";
-        else num = numCn(n) + "星";
-        return mn + " · " + num + moodWord(dm);
+        return I18n.f("%d 星", "%1$d-Star ", Integer.valueOf(n));
     }
 
     /** 该年 12 个月的点亮数（长度 12，索引 0=1 月） */

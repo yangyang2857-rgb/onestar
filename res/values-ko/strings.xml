@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- System-level strings (launcher label, widget title, a11y) for values-ko. -->
+<resources>
+    <string name="app_name">원스타</string>
+    <string name="widget_label">원스타 · 오늘의 별</string>
+    <string name="widget_desc">홈 화면의 별 하나 — 탭해서 오늘을 밝히세요</string>
+    <string name="widget_hint">원스타 · 아직 꺼짐</string>
+    <string name="widget_line1">오늘은 아직 꺼져 있어요</string>
+    <string name="widget_line2">탭해서 밤하늘에 하나 놓기</string>
+</resources>

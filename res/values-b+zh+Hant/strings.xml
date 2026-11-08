@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- System-level strings (launcher label, widget title, a11y) for values-b+zh+Hant. -->
+<resources>
+    <string name="app_name">拾光</string>
+    <string name="widget_label">拾光 · 今日星</string>
+    <string name="widget_desc">桌面上的一顆星，輕觸即可點亮今天</string>
+    <string name="widget_hint">拾光 · 待點亮</string>
+    <string name="widget_line1">今天還沒點亮</string>
+    <string name="widget_line2">輕觸，放一顆進夜空</string>
+</resources>

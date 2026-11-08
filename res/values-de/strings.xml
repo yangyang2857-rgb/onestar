@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- System-level strings (launcher label, widget title, a11y) for values-de. -->
+<resources>
+    <string name="app_name">OneStar</string>
+    <string name="widget_label">OneStar · Stern des Tages</string>
+    <string name="widget_desc">Ein Stern auf dem Startbildschirm — tippen, um heute zu erleuchten</string>
+    <string name="widget_hint">OneStar · Noch dunkel</string>
+    <string name="widget_line1">Heute ist noch dunkel</string>
+    <string name="widget_line2">Tippen, um einen in den Himmel zu setzen</string>
+</resources>

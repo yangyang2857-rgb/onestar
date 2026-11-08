@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- System-level strings (launcher label, widget title, a11y) for values-ar. -->
+<resources>
+    <string name="app_name">نجم واحد</string>
+    <string name="widget_label">نجم واحد · نجمة اليوم</string>
+    <string name="widget_desc">نجمة واحدة على شاشتك الرئيسية — اضغط لإضاءة اليوم</string>
+    <string name="widget_hint">نجم واحد · لم تُضأ</string>
+    <string name="widget_line1">اليوم لا يزال مظلماً</string>
+    <string name="widget_line2">اضغط لتضع نجمة في السماء</string>
+</resources>
