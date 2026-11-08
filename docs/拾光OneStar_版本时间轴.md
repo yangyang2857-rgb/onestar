@@ -2,12 +2,14 @@
 AIGC:
     Label: "1"
     ContentProducer: 001191440300708461136T1XGW3
-    ProduceID: ba89e2f233ef3708dee31ea6faa51e09_e759c013db8311f1bc42525400638852
-    ReservedCode1: Bb1lVAANQMMvT7cHls5Ls21iMdMeibNrQ4bbcQnm7ydT7OxzrorYET0yPViqKgixzGhfZQAnbkKXUhd2b3u++6YpSRB8ge6q3BU9qeBvgOSw7Z6LgCavJ7JN+YA6iCe8B46qcxBjb3NQ1O+aZXyT9HU3nebnmdUMRU1NP4MZquMHYzHgAl4uiRhvnYk=
+    ProduceID: ba89e2f233ef3708dee31ea6faa51e09_0368890fdb8511f1bc42525400638852
+    ReservedCode1: n/H5wuhgPa5/ajuNayrbz2Xf0PgC8yfYDy40dj01BnR6RDrBG0oeAKHqVbE3Zq4VxyzcTpc94yl9mGjsGDD8S5/oL+ZA1Yhg7QDHYtxF1Rla71NQrMI3zfxb+pxybrZA7N9McPrSOApTljsMxchxuFRy6wae0ldjZwXJCt2WxT4DS3z5fWCnhlZTtFo=
     ContentPropagator: 001191440300708461136T1XGW3
-    PropagateID: ba89e2f233ef3708dee31ea6faa51e09_e759c013db8311f1bc42525400638852
-    ReservedCode2: Bb1lVAANQMMvT7cHls5Ls21iMdMeibNrQ4bbcQnm7ydT7OxzrorYET0yPViqKgixzGhfZQAnbkKXUhd2b3u++6YpSRB8ge6q3BU9qeBvgOSw7Z6LgCavJ7JN+YA6iCe8B46qcxBjb3NQ1O+aZXyT9HU3nebnmdUMRU1NP4MZquMHYzHgAl4uiRhvnYk=
+    PropagateID: ba89e2f233ef3708dee31ea6faa51e09_0368890fdb8511f1bc42525400638852
+    ReservedCode2: n/H5wuhgPa5/ajuNayrbz2Xf0PgC8yfYDy40dj01BnR6RDrBG0oeAKHqVbE3Zq4VxyzcTpc94yl9mGjsGDD8S5/oL+ZA1Yhg7QDHYtxF1Rla71NQrMI3zfxb+pxybrZA7N9McPrSOApTljsMxchxuFRy6wae0ldjZwXJCt2WxT4DS3z5fWCnhlZTtFo=
 ---
+
+
 
 # 拾光 OneStar · 版本时间轴
 
@@ -79,7 +81,7 @@ AIGC:
 | MINOR | 用户可感知的新功能：新面板、新交互、新语言 |
 | PATCH | 只修缺陷、调手感、改文案、适配系统设置 |
 
-versionCode = MAJOR × 10000 + MINOR × 100 + PATCH（例：0.12.1 → 1201）
+versionCode 采用独立整数流水（v6.5=20、v6.6=21、v6.7=22，下一版 23）。早期设想的 `MAJOR × 10000 + MINOR × 100 + PATCH` 派生公式已废弃：历史流水号已走到 6.7（派生值 60700），重编后下一版 1.0.0 派生值只有 10000，反而会让 Android 判定降级、拒绝覆盖安装。
 
 已发布的 v6.5 / v6.6 / v6.7 三个 tag 保留原号不动——删 tag 会让对应 Release 退回草稿，已装 APK 的版本号也无法回溯改写。从下一个功能版本起统一走新体系，旧号与新号的完整对照见 CHANGELOG 文末。
 
@@ -92,4 +94,5 @@ versionCode = MAJOR × 10000 + MINOR × 100 + PATCH（例：0.12.1 → 1201）
 | 真机验证 v6.4 返回手感（缩放 0.90 / 位移 22% 屏宽 / 圆角 16 dp 可微调） | 待人工确认 |
 | 「一键清昨天」「按周完成率」两个点名功能 | 未做 |
 | android-35 SDK 落盘（Disk quota exceeded） | 阻塞中，需先腾空间或提配额 |
+*（内容由AI生成，仅供参考）*
 *（内容由AI生成，仅供参考）*
