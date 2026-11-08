@@ -3228,4 +3228,15 @@ public final class I18n {
     public static String zhKey(int index) {
         return index >= 0 && index < rows() ? T_ZH[index] : null;
     }
+    /**
+     * 系统字体缩放的安全钳制：正文文字最多放大到 1.15 倍、最小 0.90 倍。
+     * 星图坐标、海报排版按固定像素绘制，不参与缩放。
+     */
+    public static float fontScale(float raw) {
+        if (Float.isNaN(raw) || raw <= 0f) return 1f;
+        if (raw < 0.90f) return 0.90f;
+        if (raw > 1.15f) return 1.15f;
+        return raw;
+    }
+
 }

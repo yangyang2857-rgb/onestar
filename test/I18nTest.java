@@ -187,6 +187,15 @@ public class I18nTest {
         ok("visualAr", I18n.visual("مرحبا") != null, "null");
         ok("visualNum", I18n.num(7) != null, "null");
 
+        // v6.7 字体缩放钳制：0.90 ~ 1.15，异常值按 1 处理
+        eq("fsSmall", String.valueOf(I18n.fontScale(0.5f)), "0.9");
+        eq("fsNormal", String.valueOf(I18n.fontScale(1f)), "1.0");
+        eq("fsBig", String.valueOf(I18n.fontScale(2f)), "1.15");
+        eq("fsMid", String.valueOf(I18n.fontScale(1.3f)), "1.15");
+        eq("fsZero", String.valueOf(I18n.fontScale(0f)), "1.0");
+        eq("fsNaN", String.valueOf(I18n.fontScale(Float.NaN)), "1.0");
+        ok("fsMonotonic", I18n.fontScale(0.95f) < I18n.fontScale(1.05f), "order");
+
         // 恢复跟随系统
         I18n.forceTag(null);
         ok("restored", I18n.lang() >= 0 && I18n.lang() < I18n.COUNT, "lang=" + I18n.lang());

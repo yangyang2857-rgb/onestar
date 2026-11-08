@@ -85,6 +85,8 @@ public class StarFieldView extends View {
     private final RectF tmpRect = new RectF();
 
     private float dp;
+    /** v6.7 系统字体缩放（已钳制），只作用于正文文字，星图与海报按固定像素绘制。 */
+    private float fs = 1f;
     private int W, H;
     private boolean land;
 
@@ -255,6 +257,7 @@ public class StarFieldView extends View {
     public StarFieldView(Context c) {
         super(c);
         dp = getResources().getDisplayMetrics().density;
+        fs = readFontScale();
         setLayerType(LAYER_TYPE_HARDWARE, null);
         buildGlow();
         for (int i = 0; i < Constellation.MOOD_N; i++) {
@@ -350,6 +353,7 @@ public class StarFieldView extends View {
         super.onSizeChanged(w, h, ow, oh);
         W = w;
         H = h;
+        fs = readFontScale();
         layoutAll();
     }
 
@@ -1016,7 +1020,7 @@ public class StarFieldView extends View {
             }
             float baseY = H - padB - 46 * dp;
             text(c, line1, padL, baseY, 17.5f, C_TEXT, 235, 0.6f, false);
-            text(c, line2, padL, baseY + 21 * dp, 12f, C_DIM, 190, 0.8f, false);
+            text(c, line2, padL, baseY + 21 * dp * fs, 12f, C_DIM, 190, 0.8f, false);
             drawTip(c, padL, H - padB - 6 * dp, now, false);
 
         } else {
@@ -1036,15 +1040,15 @@ public class StarFieldView extends View {
             TextDraw.draw(c, I18n.num(total), padL, y, p);
             float nw = p.measureText(String.valueOf(total));
             p.setTypeface(android.graphics.Typeface.DEFAULT);
-            text(c, I18n.t("颗星", "stars"), padL + nw + 8 * dp, y - 4 * dp, 13, C_DIM, 190, 0.8f, false);
+            text(c, I18n.t("颗星", "stars"), padL + nw + 8 * dp, y - 4 * dp * fs, 13, C_DIM, 190, 0.8f, false);
 
-            y += 30 * dp;
+            y += 30 * dp * fs;
             text(c, litToday
                         ? I18n.f("今天已点亮 · %s", "Lit today · %s", Constellation.moodName(todayMood()))
                         : I18n.t("今天还未点亮", "Not lit yet today"),
                     padL, y, 12.5f, litToday ? Constellation.MOOD_COLOR[todayMood()] : C_DIM,
                     litToday ? 235 : 170, 0.6f, false);
-            y += 22 * dp;
+            y += 22 * dp * fs;
             text(c, I18n.f("连续 %d 天 · 陪伴 %d 天", "%d-day streak · %d days together", streak, spanDays),
                 padL, y, 11.5f, C_DIM, 150, 0.4f, false);
 
@@ -1751,13 +1755,22 @@ public class StarFieldView extends View {
     }
 
     // ---------- 文本工具 ----------
+    /** 读取系统字体缩放并钳制到 [0.90, 1.15]，未知或异常时按 1 处理。 */
+    private float readFontScale() {
+        try {
+            return I18n.fontScale(getResources().getConfiguration().fontScale);
+        } catch (Throwable t) {
+            return 1f;
+        }
+    }
+
     private void text(Canvas c, String s, float x, float y, float size, int color, int alpha,
                       float spacing, boolean bold) {
         p.reset();
         p.setAntiAlias(true);
         p.setColor(color);
         p.setAlpha(alpha);
-        p.setTextSize(size * dp);
+        p.setTextSize(size * dp * fs);
         p.setTextAlign(Paint.Align.LEFT);
         p.setTypeface(bold ? android.graphics.Typeface.DEFAULT_BOLD : android.graphics.Typeface.DEFAULT);
         if (Build.VERSION.SDK_INT >= 21) p.setLetterSpacing(spacing * 0.12f);
@@ -1769,7 +1782,7 @@ public class StarFieldView extends View {
         p.setAntiAlias(true);
         p.setColor(color);
         p.setAlpha(alpha);
-        p.setTextSize(size * dp);
+        p.setTextSize(size * dp * fs);
         p.setTextAlign(Paint.Align.RIGHT);
         TextDraw.draw(c, s, x, y, p);
     }
@@ -1778,7 +1791,7 @@ public class StarFieldView extends View {
     float textWidth(String s, float size, float spacing, boolean bold) {
         p.reset();
         p.setAntiAlias(true);
-        p.setTextSize(size * dp);
+        p.setTextSize(size * dp * fs);
         p.setTypeface(bold ? android.graphics.Typeface.DEFAULT_BOLD : android.graphics.Typeface.DEFAULT);
         if (Build.VERSION.SDK_INT >= 21) p.setLetterSpacing(spacing * 0.12f);
         return p.measureText(I18n.visual(s));
@@ -1789,7 +1802,7 @@ public class StarFieldView extends View {
         p.setAntiAlias(true);
         p.setColor(color);
         p.setAlpha(alpha);
-        p.setTextSize(size * dp);
+        p.setTextSize(size * dp * fs);
         p.setTextAlign(Paint.Align.CENTER);
         if (Build.VERSION.SDK_INT >= 21) p.setLetterSpacing(spacing * 0.12f);
         TextDraw.draw(c, s, x, y, p);

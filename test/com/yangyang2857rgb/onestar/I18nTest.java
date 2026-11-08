@@ -129,6 +129,13 @@ public final class I18nTest {
         eq("zh.back.starName", StarName.display(null, 7, 2), "第 7 颗 · 絮语");
     eq("zh.back.date", I18n.date(1, 1), "1 月 1 日");
 
+        // ---------- v6.7 字体缩放钳制 ----------
+        eq("fs.small", String.valueOf(I18n.fontScale(0.5f)), "0.9");
+        eq("fs.normal", String.valueOf(I18n.fontScale(1f)), "1.0");
+        eq("fs.large", String.valueOf(I18n.fontScale(2f)), "1.15");
+        eq("fs.zero", String.valueOf(I18n.fontScale(0f)), "1.0");
+        eq("fs.nan", String.valueOf(I18n.fontScale(Float.NaN)), "1.0");
+
         I18n.force(null);
         check("force.reset", I18n.t("中", "EN") != null, "ok", "ok");
 
