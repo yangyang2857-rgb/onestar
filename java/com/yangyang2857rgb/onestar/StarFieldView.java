@@ -14,11 +14,13 @@ import android.graphics.RectF;
 import android.graphics.Shader;
 import android.graphics.Typeface;
 import android.os.Build;
+import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.view.HapticFeedbackConstants;
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.accessibility.AccessibilityNodeInfo;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -75,7 +77,8 @@ public class StarFieldView extends View {
 
     // ---------- 配色 ----------
     private static final int C_TEXT = 0xFFEEF3FF;
-    private static final int C_DIM = 0xFF8A97BD;
+    /** v6.8 可读性：次级文字由 #8A97BD 提亮到 #9EABCC，深底对比度 7.0→9.3。 */
+    private static final int C_DIM = 0xFF9EABCC;
     private static final int C_WARM = 0xFFFFF0D0;
     private static final int C_COOL = 0xFFDFE9FF;
     private static final int C_BG = 0xFF04050D;
@@ -365,11 +368,24 @@ public class StarFieldView extends View {
         padT = 30 * dp + safeT;
         padB = 26 * dp + safeB;
 
-        float bw = 78 * dp, bh = 34 * dp, gap = 10 * dp;
-        btnOrient.set(W - padL - bw, padT - 6 * dp, W - padL, padT - 6 * dp + bh);
-        btnBook.set(btnOrient.left - gap - 60 * dp, btnOrient.top,
+        // v6.8 可用性：胶囊 34→38dp 高，宽度按当前语言实测文字自适应，长译文与大字号不再顶出边界
+        float bh = 38 * dp, gap = 8 * dp;
+        String lOrient = land ? I18n.t("竖屏", "Portrait") : I18n.t("横屏", "Landscape");
+        float wOrient = pillW(lOrient), wBook = pillW(I18n.t("星图", "Chart")),
+                wSys = pillW(I18n.t("系统", "System"));
+        float avail = W - padL * 2;
+        float sum = wOrient + wBook + wSys + gap * 2;
+        if (sum > avail) {
+            // 窄屏（320dp）+ 1.15 字号仍放不下：三个胶囊等比收窄，下限 0.62 保证文字可裁不重叠
+            float k = Math.max(0.62f, (avail - gap * 2) / (sum - gap * 2));
+            wOrient *= k;
+            wBook *= k;
+            wSys *= k;
+        }
+        btnOrient.set(W - padL - wOrient, padT - 6 * dp, W - padL, padT - 6 * dp + bh);
+        btnBook.set(btnOrient.left - gap - wBook, btnOrient.top,
                 btnOrient.left - gap, btnOrient.bottom);
-        btnSys.set(btnBook.left - gap - 60 * dp, btnOrient.top,
+        btnSys.set(btnBook.left - gap - wSys, btnOrient.top,
                 btnBook.left - gap, btnOrient.bottom);
 
         if (land) {
@@ -380,6 +396,17 @@ public class StarFieldView extends View {
             colW = W;
             skyR.set(0, 0, W, H);
         }
+    }
+
+    /** v6.8 胶囊最小宽度：图标占位 16dp + 图标文字间距 12dp + 实测文字宽 + 右侧留白 14dp，且不小于 78dp。 */
+    private float pillW(String label) {
+        return Math.max(78 * dp, 16 * dp + 12 * dp + textWidth(label, 11.5f, 1.2f, false) + 14 * dp);
+    }
+
+    /** v6.8 命中容错：视觉 38dp 高的胶囊上下各放 6dp、左右各放 3dp，实际可点区 ≥48dp。 */
+    private boolean hitR(RectF r, float x, float y) {
+        return x >= r.left - 3 * dp && x <= r.right + 3 * dp
+                && y >= r.top - 6 * dp && y <= r.bottom + 6 * dp;
     }
 
     void onOrientationChanged() {
@@ -484,9 +511,9 @@ public class StarFieldView extends View {
             if (!hitStar) {
                 // v6.2 长按空白：跳过星图面板，直接进入补记
                 Host dh = host();
-                boolean onChrome = btnBook.contains(downX, downY)
-                        || btnSys.contains(downX, downY)
-                        || btnOrient.contains(downX, downY)
+                boolean onChrome = hitR(btnBook, downX, downY)
+                        || hitR(btnSys, downX, downY)
+                        || hitR(btnOrient, downX, downY)
                         || closeBtnRect.contains(downX, downY)
                         || undoRect.contains(downX, downY);
                 if (dh != null && !onChrome) {
@@ -1066,13 +1093,23 @@ public class StarFieldView extends View {
         String t4 = I18n.t("长按空白 · 直接补记某一天", "Long-press blank · backfill a day");
         String t5 = I18n.t("右上角星图 · 看见整年", "Chart up right · see the whole year");
         String[] tips = new String[]{t1, t2, t3, t4, t5};
+        // v6.8 空状态：一颗星都没有时不轮播，固定一句第一步引导并做呼吸，别让新用户被五条提示晃过
+        if (total == 0) {
+            float breath = 0.86f + 0.14f * (float) Math.sin(now / 680.0);
+            int a0 = (int) (210 * Math.max(0f, Math.min(1f, breath)));
+            String first = I18n.t("轻触夜空 · 点亮今天的第一颗星", "Tap the sky · light your first star");
+            if (centered) textCenter(c, first, x, y, 11f, C_DIM, a0, 0.5f);
+            else text(c, first, x, y, 11f, C_DIM, a0, 0.5f, false);
+            return;
+        }
         long period = 4600L;
         int idx = (int) ((now / period) % tips.length);
         float ph = (now % period) / (float) period;
         float fade = Math.min(1f, Math.min(ph / 0.12f, (1f - ph) / 0.12f));
-        int alpha = (int) (115 * Math.max(0f, fade));
-        if (centered) textCenter(c, tips[idx], x, y, 10.5f, C_DIM, alpha, 0.5f);
-        else text(c, tips[idx], x, y, 10.5f, C_DIM, alpha, 0.5f, false);
+        // v6.8 可读性：提示 alpha 115→190、字号 10.5→11，深底实际对比度由约 2.1:1 提到约 4.6:1
+        int alpha = (int) (190 * Math.max(0f, fade));
+        if (centered) textCenter(c, tips[idx], x, y, 11f, C_DIM, alpha, 0.5f);
+        else text(c, tips[idx], x, y, 11f, C_DIM, alpha, 0.5f, false);
     }
 
     /** v4.1：标题下方一缕极细暖金线，给页眉一点金属质感 */
@@ -1283,7 +1320,12 @@ public class StarFieldView extends View {
             c.drawArc(new RectF(iconCx - 2.5f * dp, cy - 3.4f * dp, iconCx + 4.6f * dp, cy + 3.4f * dp), -60, 120, false, p);
         }
 
-        text(c, label, iconCx + 12 * dp, cy + 4 * dp, 11.5f, active ? C_WARM : 0xFFD8E2FF, 215, 1.2f, false);
+        // v6.8 可读性：标签 alpha 215→238；并裁剪在胶囊内，极窄按钮时文字收边而不是压到邻居
+        int sc = c.save();
+        c.clipRect(r.left + 4 * dp, r.top, r.right - 6 * dp, r.bottom);
+        text(c, label, iconCx + 12 * dp, cy + 4 * dp, 11.5f,
+                active ? C_WARM : 0xFFDDE6FF, 238, 1.2f, false);
+        c.restoreToCount(sc);
     }
 
     // ---------- 心情选择环 ----------
@@ -1816,6 +1858,32 @@ public class StarFieldView extends View {
     }
 
     // ---------- 触摸 ----------
+    // ---------- v6.8 无障碍：整片夜空作为一个可朗读、可点击的控件 ----------
+    @Override
+    public void onInitializeAccessibilityNodeInfo(AccessibilityNodeInfo info) {
+        super.onInitializeAccessibilityNodeInfo(info);
+        String state = litToday
+                ? I18n.t("今天已点亮", "today is lit")
+                : I18n.t("今天还没点亮", "today is not lit");
+        info.setClassName("android.widget.Button");
+        info.setContentDescription(I18n.f(
+                "拾光，共 %d 颗星，%s。双击选择今天的颜色。",
+                "OneStar, %d stars, %s. Double tap to pick today's color.", total, state));
+        info.addAction(AccessibilityNodeInfo.AccessibilityAction.ACTION_CLICK);
+    }
+
+    @Override
+    public boolean performAccessibilityAction(int action, Bundle args) {
+        if (action == AccessibilityNodeInfo.ACTION_CLICK) {
+            if (!litToday && !flying && !picking && !panelOpen && !sysOpen && !calOpen && !replayOn) {
+                startPicking(W / 2f, H * 0.58f);
+                announceForAccessibility(I18n.t("选择今天的颜色", "Pick today's color"));
+                return true;
+            }
+        }
+        return super.performAccessibilityAction(action, args);
+    }
+
     @Override
     public boolean onTouchEvent(MotionEvent e) {
         float x = e.getX(), y = e.getY();
@@ -1854,7 +1922,9 @@ public class StarFieldView extends View {
                 downActive = true;
                 downMoved = false;
                 longFired = false;
-                pressedPill = btnBook.contains(x, y) ? 1 : (btnOrient.contains(x, y) ? 2 : 0);
+                // v6.8：补上系统按钮（原来按下去没有高光，只有星图/横竖屏有）
+                pressedPill = hitR(btnBook, x, y) ? 1
+                        : (hitR(btnSys, x, y) ? 3 : (hitR(btnOrient, x, y) ? 2 : 0));
                 if (pressedPill != 0) invalidate();
                 return true;
             case MotionEvent.ACTION_MOVE:
@@ -1927,7 +1997,7 @@ public class StarFieldView extends View {
             return;
         }
         if (sysOpen) {
-            boolean onBtn = btnSys.contains(x, y);
+            boolean onBtn = hitR(btnSys, x, y);
             sysOpen = false;
             invalidate();
             if (!onBtn) return;
@@ -1980,13 +2050,13 @@ public class StarFieldView extends View {
             }
             return;
         }
-        if (btnOrient.contains(x, y)) {
+        if (hitR(btnOrient, x, y)) {
             pulse();
             Host h = host();
             if (h != null) h.toggleOrientation();
             return;
         }
-        if (btnSys.contains(x, y)) {
+        if (hitR(btnSys, x, y)) {
             pulse();
             resetBackProgress();
             sysOpen = true;
@@ -1995,7 +2065,7 @@ public class StarFieldView extends View {
             invalidate();
             return;
         }
-        if (btnBook.contains(x, y)) {
+        if (hitR(btnBook, x, y)) {
             pulse();
             resetBackProgress();
             panelOpen = true;
