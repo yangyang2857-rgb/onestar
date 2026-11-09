@@ -112,7 +112,7 @@ JAVA_HOME=/path/to/jdk-17 ./test.sh
 ├── java/com/yangyang2857rgb/onestar/
 │   ├── MainActivity.java        # 入口，手势/生命周期
 │   ├── StarFieldView.java       # 核心自绘视图（3036 行）
-│   ├── I18n.java                # 15 种语言文案表（3242 行，全仓最大）
+│   ├── I18n.java                # 15 种语言文案表（3237 行，全仓最大）
 │   ├── TextDraw.java            # Canvas 文字绘制与 RTL 视觉重排
 │   ├── DaysStore.java           # SharedPreferences 存储读写
 │   ├── DaysCodec.java           # 记录行编码/解析（纯逻辑，可单测）
