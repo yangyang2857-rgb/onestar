@@ -32,6 +32,22 @@ jobs:
           echo "ZIG=$(python3 -c 'import ziglang,os;print(os.path.join(os.path.dirname(ziglang.__file__),"zig"))')" >> $GITHUB_ENV
           chmod +x "$(python3 -c 'import ziglang,os;print(os.path.join(os.path.dirname(ziglang.__file__),"zig"))')" || true
 
+      - name: Restore signing keystore (固定证书，保证可覆盖升级)
+        env:
+          KS_B64: ${{ secrets.ONESTAR_KS_B64 }}
+          KS_PASS: ${{ secrets.ONESTAR_KS_PASS }}
+        run: |
+          if [ -n "$KS_B64" ]; then
+            mkdir -p ci-keys
+            printf '%s' "$KS_B64" | base64 -d > ci-keys/onestar-debug.keystore
+            echo "ONESTAR_KS=$PWD/ci-keys/onestar-debug.keystore" >> "$GITHUB_ENV"
+            echo "ONESTAR_KS_PASS=${KS_PASS:-android}" >> "$GITHUB_ENV"
+            echo "ONESTAR_KS_ALIAS=onestar-debug" >> "$GITHUB_ENV"
+            echo "::notice::已使用仓库固定签名证书（ONESTAR_KS_B64）"
+          else
+            echo "::warning::未配置 ONESTAR_KS_B64，本次会现场生成一次性 debug keystore，产物无法覆盖升级已装版本"
+          fi
+
       - name: Unit tests (纯 JVM，无 Gradle)
         run: bash ./test.sh
 
@@ -40,6 +56,10 @@ jobs:
           ANDROID_HOME: ${{ env.ANDROID_SDK_ROOT }}
           BUILD_TOOLS: '34.0.0'
         run: bash ./build.sh
+
+      - name: Verify signing certificate (证书指纹不得漂移)
+        if: ${{ env.ONESTAR_KS != '' }}
+        run: python3 tools/verify_apk_signature.py build/onestar-*-signed.apk
 
       - name: Upload APK
         uses: actions/upload-artifact@v4

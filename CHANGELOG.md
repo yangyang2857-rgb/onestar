@@ -49,6 +49,14 @@ Android 会判定为降级、拒绝覆盖安装。所以这里把两套编号彻
 - 无障碍：整片夜空注册为一个可朗读、可点击的控件（`onInitializeAccessibilityNodeInfo` + `performAccessibilityAction`），播报「共 N 颗星、今天是否点亮、双击选色」
 - 补上系统胶囊按钮的按压高光（此前只有星图与横竖屏两个按钮有反馈）
 
+### 构建工具链 — 不占版本号（无用户可感知变更）
+
+- `build.sh` 支持 `ONESTAR_KS_B64`：keystore 可由 CI 从 Secret 内联注入，不再每次现场 `keytool -genkeypair` 生成新证书，从根上解决「不同版本证书不一致、无法覆盖升级」
+- 新增 `tools/verify_apk_signature.py`：解析 APK 的 v1 签名块，打印证书主题与 SHA-256，并与仓库约定的固定指纹比对；固定证书构建时指纹漂移会让构建失败，一次性 debug 证书只打印不阻断
+- CI 新增 `Restore signing keystore`（还原固定证书）与 `Verify signing certificate`（验签）两步；未配置 Secret 时输出显式警告，提示该产物的覆盖升级能力不可用
+- 新增 `docs/签名与覆盖升级.md`：签名约定、Secret 配置、验签与排错、安全边界
+- README 重写扩充：功能一览、AGP 职责对照、安装与覆盖升级、数据与隐私、FAQ、Roadmap、文档索引
+
 ### 1.0.0 — 计划
 
 - 版式与文案冻结，真机回归 15 种语言、系统字号极值、横竖屏切换

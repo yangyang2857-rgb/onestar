@@ -167,7 +167,18 @@ log "zip16k 重打包"
 python3 tools/zip16k.py "$WORK/unsigned.apk" "$WORK/aligned.apk"
 
 # ---------- 9. 签名 ----------
+# ONESTAR_KS_B64：把 keystore 以 base64 内联进环境变量，供 CI 从 Secret 注入。
+# 这样每次构建用的都是同一张证书，已装用户才能覆盖升级（见 docs/签名与覆盖升级.md）。
+if [ -n "${ONESTAR_KS_B64:-}" ] && [ -z "${ONESTAR_KS:-}" ]; then
+  ONESTAR_KS="$WORK/ci-signing.keystore"
+  printf '%s' "$ONESTAR_KS_B64" | base64 -d > "$ONESTAR_KS"
+  ONESTAR_KS_PASS="${ONESTAR_KS_PASS:-android}"
+  ONESTAR_KS_ALIAS="${ONESTAR_KS_ALIAS:-onestar-debug}"
+  log "已从 ONESTAR_KS_B64 还原固定签名证书"
+fi
+
 KS="${ONESTAR_KS:-}"
+SIGNING_FIXED=0
 if [ -z "$KS" ]; then
   KS="$WORK/debug.keystore"
   KS_PASS="android"
@@ -181,6 +192,7 @@ if [ -z "$KS" ]; then
 else
   KS_PASS="${ONESTAR_KS_PASS:?设置了 ONESTAR_KS 就必须同时给 ONESTAR_KS_PASS}"
   KS_ALIAS="${ONESTAR_KS_ALIAS:?设置了 ONESTAR_KS 就必须同时给 ONESTAR_KS_ALIAS}"
+  SIGNING_FIXED=1
 fi
 
 APK="$OUT/onestar-$VN-signed.apk"
@@ -190,6 +202,15 @@ APK="$OUT/onestar-$VN-signed.apk"
   --out "$APK" "$WORK/aligned.apk"
 "$BT/apksigner" verify "$APK"
 "$BT/aapt" dump badging "$APK" | head -3 || true
+
+# 固定证书时校验指纹，漂移即失败；一次性 debug 证书只打印指纹供参考
+if [ -f tools/verify_apk_signature.py ]; then
+  if [ "$SIGNING_FIXED" = "1" ]; then
+    python3 tools/verify_apk_signature.py "$APK"
+  else
+    python3 tools/verify_apk_signature.py "$APK" --print-only || true
+  fi
+fi
 
 log "完成：$APK"
 ls -lh "$APK"

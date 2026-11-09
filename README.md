@@ -1,5 +1,12 @@
 # 拾光 OneStar
 
+![Android](https://img.shields.io/badge/Android-5.0%2B%20(API%2021)-3DDC84?logo=android&logoColor=white)
+![targetSdk](https://img.shields.io/badge/targetSdk-35-3DDC84)
+![Gradle](https://img.shields.io/badge/Gradle-不需要-1f6feb)
+![Build](https://img.shields.io/badge/build-aapt2%20%2B%20javac%20%2B%20d8%20%2B%20apksigner-8957e5)
+![Languages](https://img.shields.io/badge/i18n-15%20种语言-f2cc60)
+![License](https://img.shields.io/badge/license-MIT-2ea44f)
+
 一个**完全不用 Gradle、不用 Android Gradle Plugin** 的原生 Android 应用：桌面小组件 + 手绘星空 Canvas 界面 + 手工维护的 JNI 层，构建链路由 `aapt2 / javac / d8 / apksigner` 手工串起来，全部代码可直接在命令行编译出 APK。
 
 > 这个仓库的重点不是"一个记日记的 App"，而是**一套可复现的、脱离 Gradle 的 Android 构建实验**。如果你也好奇 AGP 到底替你做了哪些事，这里有一份能跑通的答案。
@@ -12,6 +19,23 @@
 
 ---
 
+## 目录
+
+- [1. 这个项目是什么](#1-这个项目是什么)
+- [2. 构建链](#2-构建链)
+- [3. 快速开始](#3-快速开始)
+- [4. 工程结构](#4-工程结构)
+- [5. 深入：三个值得单独说的技术点](#5-深入三个值得单独说的技术点)
+- [6. CI](#6-ci)
+- [7. 版本与发版流程](#7-版本与发版流程)
+- [8. 数据与隐私](#8-数据与隐私)
+- [9. 常见问题](#9-常见问题)
+- [10. 已知限制](#10-已知限制)
+- [11. Roadmap](#11-roadmap)
+- [12. 文档索引](#12-文档索引)
+- [13. 参与贡献](#13-参与贡献)
+- [14. 许可与致谢](#14-许可与致谢)
+
 ## 1. 这个项目是什么
 
 拾光（OneStar）是一款轻量的"每日星"记录 App：每天记一笔心情，界面用 Canvas 逐帧绘制，记录会累积成一片星图；支持桌面小组件、心情曲线、年度长图海报、旋律提示音与 5 秒可撤销的删除。
@@ -23,6 +47,38 @@
 - 全部界面自绘（`Canvas` + 手写坐标布局），不依赖 XML 布局膨胀
 - 全部字符串/资源手写，`aapt2` 直接处理 `res/`
 - 二进制层只是一层薄 JNI，编译靠 `zig cc`（不装 NDK）
+
+### 1.1 功能一览
+
+| 能力 | 说明 | 主要实现 |
+| --- | --- | --- |
+| 每日一星 | 一天记一笔心情，累积成星图；支持补记与修改 | `StarFieldView` / `DaysStore` |
+| 手绘星空 | 全部界面由 Canvas 逐帧绘制，含星轨、闪烁、粒子 | `StarFieldView`（3000+ 行） |
+| 长按星语 | 长按某颗星查看那天写下的字，可编辑、可删除 | `StarFieldView` / `TextDraw` |
+| 撤销删除 | 删除后 5 秒内可撤销，快照编码跨版本兼容 | `DaysCodec` / `DayEdit` |
+| 心情曲线 | 按时间采样心情值，画成一条曲线 | `MoodCurve` |
+| 年度长图 | 把一年记录导出成一张可分享的长图海报 | `PosterRenderer` |
+| 桌面小组件 | AppWidget 展示今日/累计星数，跟随系统语言刷新 | `StarWidget` / `WidgetState` |
+| 旋律提示音 | 点亮星星时播放一小段旋律，音序与节拍可测 | `ChimePlayer` / `Melody` |
+| 15 种语言 | 简繁中文、英、日、韩、法、德、西（西班牙/拉美）、阿、泰、葡（巴西/欧洲）、藏、维吾尔 | `I18n` / `TextDraw`（RTL 重排） |
+| 无障碍基础 | 夜空整体可朗读/可点击，顶部按钮暴露 Button 角色与 48dp 可点区 | `StarFieldView`（0.12.2 起） |
+
+### 1.2 为什么可以不用 Gradle
+
+AGP 并不是 Android 运行时的必需品，它主要做四件事：把资源编译成二进制、生成 `R` 类、把 class 变成 dex、把一切塞进 APK 并签名对齐。这四件事分别对应 `aapt2`、`aapt2 link --java`、`d8`、`zipalign / apksigner`，都是 SDK 自带的命令行工具。
+
+| 平常由 AGP 完成 | 本项目对应做法 |
+| --- | --- |
+| 资源编译与合并 | `aapt2 compile` → `aapt2 link`，`res/` 手写，无 `values-*` 变体 |
+| 生成 `R.java` | `aapt2 link --java gen/`，随 `java/` 一起 `javac` |
+| Java 编译与脱糖 | `javac -source 8 -target 8 --release 8`，不使用需要 desugar 的语法 |
+| dex 转换 | `d8 --min-api 21 --release` |
+| 打包与压缩 | 手工 `zip` 逐个条目写入，配合 `tools/zip16k.py` 做对齐 |
+| 签名 | `apksigner sign`，支持固定 keystore（见 5.3） |
+| 变体 / 依赖管理 | 不需要：无第三方依赖、无 flavor、ABI 由 `ABIS` 变量控制 |
+| 增量构建 | 不做，全量构建约数十秒；换来的是构建脚本 200 行可读可改 |
+
+代价同样明确：没有依赖解析、没有注解处理器、没有资源混淆、没有变体矩阵，也没有 IDE 的一键运行。这个仓库存在的意义，是把代价和收益都摆在明面上。
 
 ## 2. 构建链
 
@@ -42,7 +98,7 @@ tools/zip16k.py ──►  16 KB 页对齐重打包（.so 以 STORED 存放并�
 apksigner sign ──►  onestar-<version>-signed.apk
 ```
 
-对应脚本就是仓库根的 `build.sh`，一共 200 来行 Bash。
+对应脚本就是仓库根的 `build.sh`，一共 200 来行 Bash。构建前它还会做两道版本自检：`versionCode` 不得小于历史最大值，`assets/COPYRIGHT.txt` 里的版本号必须与 `AndroidManifest.xml` 一致（确需跳过时设 `SKIP_VERSION_CHECK=1`）。
 
 ## 3. 快速开始
 
@@ -72,9 +128,17 @@ ONESTAR_KS=release.keystore ONESTAR_KS_PASS=****** ONESTAR_KS_ALIAS=onestar \
 
 产物在 `build/onestar-<versionName>-signed.apk`。
 
-可用环境变量：`ANDROID_HOME` / `ANDROID_SDK_ROOT`、`BUILD_TOOLS`、`JAVA_HOME`、`MIN_SDK`（默认 21）、`TARGET_SDK`（默认 35）、`ABIS`（默认 `arm64-v8a`）、`ZIG`、`ONESTAR_KS` / `ONESTAR_KS_PASS` / `ONESTAR_KS_ALIAS`。
+可用环境变量：`ANDROID_HOME` / `ANDROID_SDK_ROOT`、`BUILD_TOOLS`、`JAVA_HOME`、`MIN_SDK`（默认 21）、`TARGET_SDK`（默认 35）、`ABIS`（默认 `arm64-v8a`）、`ZIG`、`ONESTAR_KS` / `ONESTAR_KS_PASS` / `ONESTAR_KS_ALIAS`、`ONESTAR_KS_B64`（base64 内联 keystore，CI 用）、`SKIP_VERSION_CHECK`。
 
-### 3.3 跑单测（不需要模拟器、不需要 android.jar）
+### 3.3 安装到设备
+
+```bash
+adb install -r build/onestar-0.12.2-signed.apk
+```
+
+`-r` 表示保留数据覆盖安装。覆盖安装的前提是**新旧包使用同一张证书**，且 `versionCode` 不小于已安装版本；这两条任意一条不满足，系统都会拒绝安装（`INSTALL_FAILED_UPDATE_INCOMPATIBLE` 或 `INSTALL_FAILED_VERSION_DOWNGRADE`）。细节见 [5.3](#53-签名与覆盖升级)。
+
+### 3.4 跑单测（不需要模拟器、不需要 android.jar）
 
 ```bash
 JAVA_HOME=/path/to/jdk-17 ./test.sh
@@ -100,7 +164,7 @@ JAVA_HOME=/path/to/jdk-17 ./test.sh
 
 ```text
 .
-├── AndroidManifest.xml          # 单 Activity + 一个 AppWidget receiver
+├── AndroidManifest.xml          # 单 Activity + 一个 AppWidget receiver，无任何权限声明
 ├── build.sh                     # 无 Gradle 构建脚本
 ├── test.sh                      # 纯 JVM 单测入口
 ├── assets/
@@ -108,6 +172,7 @@ JAVA_HOME=/path/to/jdk-17 ./test.sh
 ├── docs/
 │   ├── 发版规范.md              # 版本号规则与发布纪律
 │   ├── 拾光OneStar_版本时间轴.md  # 历代版本与旧流水号对照
+│   ├── 签名与覆盖升级.md        # 证书固定、CI 注入与验签流程
 │   └── screenshots/             # README 引用的截图
 ├── java/com/yangyang2857rgb/onestar/
 │   ├── MainActivity.java        # 入口，手势/生命周期
@@ -133,11 +198,13 @@ JAVA_HOME=/path/to/jdk-17 ./test.sh
 │   ├── include/                 # 交叉编译所需的极简头
 │   └── src/{ons_page,ons_dsp,ons_curve}.c
 ├── res/                         # 手写 drawable / mipmap / xml（含 locales_config.xml）
-├── tools/zip16k.py              # 16 KB 对齐重打包
+├── tools/
+│   ├── zip16k.py                # 16 KB 对齐重打包
+│   └── verify_apk_signature.py  # 验签与证书指纹比对
 └── test/                        # 纯 JVM 断言程序
 ```
 
-## 5. 两个值得单独说的技术点
+## 5. 深入：三个值得单独说的技术点
 
 ### 5.1 16 KB 页大小对齐
 
@@ -147,29 +214,142 @@ Android 15 起部分设备使用 16 KB 内存页，未按 16 KB 对齐的 `.so` 
 
 `jni/src` 只有三个很薄的 C 文件（页面索引、采样、曲线），全部 `-nostdlib` 编译，头文件只需 JDK 自带的 `jni.h` 加极简桩。用 `zig cc --target aarch64-linux-musl` 交叉编译，省掉数 GB 的 NDK。`NativeCore` 在库缺失时自动退回纯 Java 实现，因此不提供 `ZIG` 也能构建、也能跑（性能略降）。
 
+### 5.3 签名与覆盖升级
+
+Android 的覆盖安装由系统做三件事的校验：**包名相同**、**证书相同**、**`versionCode` 不降**。任何一项不满足，安装器直接拒绝。
+
+这个仓库曾在 CI 里踩过坑：工作流每次都现场 `keytool -genkeypair` 生成一个"一次性 debug keystore"，于是**每次构建出来的 APK 证书都不一样**。用户装了上一版，再装下一版就会得到 `INSTALL_FAILED_UPDATE_INCOMPATIBLE`，只能卸载重装，本地数据一并丢失。
+
+现在的约定是：**证书固定、口令固定、流水号只增**。
+
+| 项 | 值 |
+| --- | --- |
+| 包名 | `com.yangyang2857rgb.onestar` |
+| 签名证书主题 | `CN=OneStar Debug, O=OneStar, C=CN` |
+| 证书 SHA-256 | `B0:F1:E2:A1:36:84:16:90:0A:AC:9C:A2:F9:9F:19:1C:3F:E2:C4:13:43:50:3A:7F:38:A0:F7:98:79:D5:4C:D1` |
+| 有效期 | 2026-11-07 → 2054-03-25 |
+| 签名方案 | v1（JAR）+ v2（APK Signature Scheme v2） |
+
+CI 通过仓库 Secret 注入这张证书，而不是现场生成：
+
+1. 本地把 keystore 转成 base64：`base64 -w0 onestar-debug.keystore > ks.b64`
+2. 在 **Settings → Secrets and variables → Actions** 新建 `ONESTAR_KS_B64`（证书本体）与 `ONESTAR_KS_PASS`（口令）
+3. `build.sh` 检测到 `ONESTAR_KS_B64` 时先解码到 `build/work/` 再签名；没有该变量才退回"一次性 debug keystore"
+4. 构建末尾用 `tools/verify_apk_signature.py` 校验证书指纹，指纹不符直接让流水线失败
+
+本地自检：
+
+```bash
+# 打印 APK 的签名证书
+apksigner verify --print-certs build/onestar-0.12.2-signed.apk
+
+# 或只看本项目约定的指纹是否一致
+python3 tools/verify_apk_signature.py build/onestar-0.12.2-signed.apk
+```
+
+需要强调边界：这张 debug 证书的私钥随仓库/Secret 流转，虽然不在源码里明文出现，但**它不具备任何防伪能力**。它只适合自用、体验与验证构建链，**不能上架应用商店，也不适合对外分发**。要正式分发必须换成自己的 release keystore（`ONESTAR_KS` / `ONESTAR_KS_PASS`），代价是老用户需要卸载重装。
+
 ## 6. CI
 
 `.github/workflows/android.yml` 是一份开箱即用的工作流：在 Ubuntu 上装 build-tools 34 与 platform 35，先跑 `test.sh` 再跑 `build.sh`，把签名后的 APK 作为 workflow artifact 上传。整个流水线同样不含 Gradle。
 
 触发方式：推送到 `main`、打 `v*` 标签，或在 **Actions → build → Run workflow** 手动执行。产物在该次运行的 Artifacts → `onestar-apk`。
 
-## 7. 已知限制
+签名相关：工作流会读取 `ONESTAR_KS_B64` / `ONESTAR_KS_PASS` 两个 Secret；未配置时按"一次性 debug keystore"构建，并在日志里给出显式警告——那种产物不具备覆盖升级能力。
+
+## 7. 版本与发版流程
+
+版本记录见 [CHANGELOG.md](CHANGELOG.md)，规则全文见 [docs/发版规范.md](docs/发版规范.md)，历代版本对照见 [docs/拾光OneStar_版本时间轴.md](docs/拾光OneStar_版本时间轴.md)。
+
+三条硬规则：
+
+- **`versionName` 走语义化版本**：`MAJOR` 破坏性变更（存储格式、包名、构建方式、签名）、`MINOR` 新增可感知功能、`PATCH` 只修缺陷/手感/文案/无障碍
+- **`versionCode` 是独立流水号**：与 `versionName` 没有换算关系，只增不减、永不复用，`build.sh` 在构建前校验
+- **只改文档不发版**：README、注释、CHANGELOG 的纯文档改动直接进 `main`，不占版本号
+
+一次发版的完整动作：
+
+1. 改 `AndroidManifest.xml` 的 `versionCode` / `versionName`，同步 `assets/COPYRIGHT.txt`
+2. 更新 `CHANGELOG.md`（Keep a Changelog 风格，未发布内容放 `Unreleased`）
+3. `./test.sh && ./build.sh` 全绿
+4. 提交、打 tag（`v0.12.2`）、推送
+5. 在 **Releases** 用该 tag 建 Release，附 APK 与 SHA-256，写清变更点与升级注意事项
+
+> 历史包袱说明：`v6.3`–`v6.7` 用的是旧的流水号式版本名，`0.12.x` 起改回语义化版本号，两者通过 CHANGELOG 与版本时间轴对照，`versionCode` 始终连续。`0.12.2` 对应 `versionCode 23`。
+
+## 8. 数据与隐私
+
+- **没有任何权限声明**：`AndroidManifest.xml` 里没有 `INTERNET`、没有存储、没有定位、没有传感器权限，App 在权限层面就没有联网能力
+- **没有第三方 SDK / 统计 / 广告 / 崩溃上报**
+- 记录写在应用私有的 `SharedPreferences` 里，格式由 `DaysCodec` 编解码；升级不改变存储格式，卸载即删除
+- `android:allowBackup="true"`，因此系统备份（含 adb backup / 换机迁移）会把数据一起带走；不希望如此可自行改为 `false`
+- 年度长图海报由本地 Canvas 渲染，不上传任何服务器
+
+## 9. 常见问题
+
+**Q：覆盖安装报 `INSTALL_FAILED_UPDATE_INCOMPATIBLE`？**
+新旧包证书不一致。用 `apksigner verify --print-certs` 对比两个 APK；若确实不同，只能卸载重装（数据会丢），或改用同一张 keystore 重新签名。
+
+**Q：报 `INSTALL_FAILED_VERSION_DOWNGRADE`？**
+新包的 `versionCode` 小于等于已装版本。`versionCode` 只增不减，改大后重新构建即可。
+
+**Q：`build.sh` 说找不到 `aapt2` / `d8` / `apksigner`？**
+`ANDROID_HOME` 没指对，或 build-tools 低于 34。可以先 `ls $ANDROID_HOME/build-tools` 确认，必要时用 `BUILD_TOOLS=34.0.0` 显式指定。
+
+**Q：为什么没有 `res/values-zh/` 这类多语言目录？**
+界面文案不交给系统资源系统，而是集中在 `I18n.java` 的文案表里，由 `TextDraw` 处理换行、断词与 RTL 重排。`res/` 里只有系统必须读取的图标名、小组件标题等少量条目，`res/xml/locales_config.xml` 仅用于接入 Android 13 的「应用语言」入口。
+
+**Q：不装 zig 能构建吗？**
+能。`jni/` 会被跳过，`NativeCore` 自动走纯 Java 实现，功能完整、性能略降。
+
+**Q：为什么只出 `arm64-v8a`？**
+绝大多数在用设备都是 64 位 ARM。要其他 ABI 就改 `ABIS`，并自行补对应的 `zig cc` target。
+
+**Q：支持的最低版本？**
+`minSdkVersion 21`（Android 5.0）。低于 Android 13 的系统会忽略 `locales_config.xml`，语言仍由 `I18n.detect()` 跟随系统语言。
+
+**Q：为什么版本号一会儿 6.x 一会儿 0.12.x？**
+见 [7. 版本与发版流程](#7-版本与发版流程) 的历史包袱说明：6.x 是早期流水号式命名，0.12.x 起改用语义化版本，`versionCode` 连续未断。
+
+## 10. 已知限制
 
 - 只构建 `arm64-v8a`；需要其他 ABI 时改 `ABIS` 并自行加交叉工具链目标
 - 界面坐标按竖屏固定比例手算，极端屏幕比例下需要调参
-- Release 页面与 CI 产物使用的是仓库内固定生成的 **debug 证书**签名。这样做的目的是让每次构建的证书指纹一致、已装用户可以直接覆盖升级；代价是这个证书对所有人可见，任何人都能伪造同签名名的更新包，因此它只适合自用、体验与验证构建链，**不能上架应用商店，也不适合对外分发**。要正式分发必须换成自己的 release keystore（`ONESTAR_KS` / `ONESTAR_KS_PASS`），届时老用户需要卸载重装才能升级
-- 多语言覆盖 15 种语言（简繁中文、英、日、韩、法、德、西班牙（西班牙/拉美）、阿拉伯、泰、巴西/欧洲葡萄牙、藏、维吾尔），全部由 `I18n.java` 的文案表与 `TextDraw` 的 RTL 重排实现，没有引入第三方 i18n 框架；界面文案不依赖 `res/values-*`，`res` 里只有系统读取的图标名、小组件标题等少数条目，并由 `res/xml/locales_config.xml` 接入 Android 13 的「应用语言」入口
+- Release 页面与 CI 产物使用固定的 **debug 证书**签名，只适合自用、体验与验证构建链，**不能上架应用商店，也不适合对外分发**（见 5.3）
+- 多语言覆盖 15 种语言（简繁中文、英、日、韩、法、德、西班牙（西班牙/拉美）、阿拉伯、泰、巴西/欧洲葡萄牙、藏、维吾尔），全部由 `I18n.java` 的文案表与 `TextDraw` 的 RTL 重排实现，没有引入第三方 i18n 框架
 - 无障碍为部分适配：0.12.2 起顶部胶囊按钮向 TalkBack 暴露 Button 角色与 `contentDescription`，并把可点区放大到不小于 48dp；完整的无障碍树、焦点遍历顺序与朗读节奏仍未系统梳理
+- 没有增量构建，全量重编；没有依赖管理，新增第三方库需要手工接入
 
-## 8. 版本
+## 11. Roadmap
 
-版本记录见 [CHANGELOG.md](CHANGELOG.md)。可直接安装的 APK 放在仓库的 **Releases** 页面，源码仓库内不存放二进制。
+| 阶段 | 内容 | 状态 |
+| --- | --- | --- |
+| 0.12.2 | 胶囊按钮对比度/可点区、空状态引导、无障碍基础、签名固化 | 预览包 `v0.12.2-rc1`，待真机回归 |
+| 1.0.0 | 版式与文案冻结；15 种语言真机回归；系统字号极值与横竖屏切换回归；软著登记材料 | 计划中 |
+| 1.x | 完整无障碍树与焦点顺序；更多 ABI；记录导出/导入 | 待定 |
 
-发版纪律与版本号规则见 [docs/发版规范.md](docs/发版规范.md)；历代版本、旧流水号与语义化版本号的对应关系见 [docs/拾光OneStar_版本时间轴.md](docs/拾光OneStar_版本时间轴.md)。
+## 12. 文档索引
 
-## 9. 许可
+| 文档 | 内容 |
+| --- | --- |
+| [CHANGELOG.md](CHANGELOG.md) | 逐版本变更记录与 `versionCode` 对照 |
+| [docs/发版规范.md](docs/发版规范.md) | SemVer 2.0.0 + Keep a Changelog + Conventional Commits + DORA 指标 + WCAG 2.2 的落地规则 |
+| [docs/拾光OneStar_版本时间轴.md](docs/拾光OneStar_版本时间轴.md) | 历代版本、旧流水号与语义化版本号的对应关系 |
+| [docs/签名与覆盖升级.md](docs/签名与覆盖升级.md) | 证书固定、CI Secret 注入、验签与排错 |
+| [LICENSE](LICENSE) | MIT |
+
+## 13. 参与贡献
+
+- 修 bug / 调手感：直接提 PR，目标分支 `main`，提交信息遵循 Conventional Commits（`fix:` / `feat:` / `docs:` / `chore:`）
+- 改行为：先开 Issue 说明动机与影响面，涉及存储格式或签名的改动必须写清升级路径
+- 提 PR 前请至少跑通 `./test.sh`；改到 `build.sh` 或 `tools/` 的，请附一次完整构建日志
+- 新增/修改文案：15 种语言的 `I18n` 表必须同时更新，`I18nTableTest` 会校验行数与占位符一致性
+
+## 14. 许可与致谢
 
 代码以 [MIT License](LICENSE) 发布。`assets/COPYRIGHT.txt` 中的署名信息请随分发保留。
+
+感谢 Android SDK 命令行工具链（`aapt2` / `d8` / `apksigner`）与 [zig](https://ziglang.org/) 提供了不依赖 Gradle 与 NDK 的另一种可能。
 
 ---
 
