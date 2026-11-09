@@ -105,9 +105,13 @@ JAVA_HOME=/path/to/jdk-17 ./test.sh
 ├── test.sh                      # 纯 JVM 单测入口
 ├── assets/
 │   └── COPYRIGHT.txt            # 署名信息（随 APK 打包，也用于版本内说明）
+├── docs/
+│   ├── 发版规范.md              # 版本号规则与发布纪律
+│   ├── 拾光OneStar_版本时间轴.md  # 历代版本与旧流水号对照
+│   └── screenshots/             # README 引用的截图
 ├── java/com/yangyang2857rgb/onestar/
 │   ├── MainActivity.java        # 入口，手势/生命周期
-│   ├── StarFieldView.java       # 核心自绘视图（2966 行）
+│   ├── StarFieldView.java       # 核心自绘视图（3036 行）
 │   ├── I18n.java                # 15 种语言文案表（3242 行，全仓最大）
 │   ├── TextDraw.java            # Canvas 文字绘制与 RTL 视觉重排
 │   ├── DaysStore.java           # SharedPreferences 存储读写
@@ -155,11 +159,13 @@ Android 15 起部分设备使用 16 KB 内存页，未按 16 KB 对齐的 `.so` 
 - 界面坐标按竖屏固定比例手算，极端屏幕比例下需要调参
 - Release 页面与 CI 产物使用的是仓库内固定生成的 **debug 证书**签名。这样做的目的是让每次构建的证书指纹一致、已装用户可以直接覆盖升级；代价是这个证书对所有人可见，任何人都能伪造同签名名的更新包，因此它只适合自用、体验与验证构建链，**不能上架应用商店，也不适合对外分发**。要正式分发必须换成自己的 release keystore（`ONESTAR_KS` / `ONESTAR_KS_PASS`），届时老用户需要卸载重装才能升级
 - 多语言覆盖 15 种语言（简繁中文、英、日、韩、法、德、西班牙（西班牙/拉美）、阿拉伯、泰、巴西/欧洲葡萄牙、藏、维吾尔），全部由 `I18n.java` 的文案表与 `TextDraw` 的 RTL 重排实现，没有引入第三方 i18n 框架；界面文案不依赖 `res/values-*`，`res` 里只有系统读取的图标名、小组件标题等少数条目，并由 `res/xml/locales_config.xml` 接入 Android 13 的「应用语言」入口
-- 未做无障碍完整适配（自绘视图的 `contentDescription` 覆盖有限）
+- 无障碍为部分适配：v6.8 起顶部胶囊按钮向 TalkBack 暴露 Button 角色与 `contentDescription`，并把可点区放大到不小于 48dp；完整的无障碍树、焦点遍历顺序与朗读节奏仍未系统梳理
 
 ## 8. 版本
 
 版本记录见 [CHANGELOG.md](CHANGELOG.md)。可直接安装的 APK 放在仓库的 **Releases** 页面，源码仓库内不存放二进制。
+
+发版纪律与版本号规则见 [docs/发版规范.md](docs/发版规范.md)；历代版本、旧流水号与语义化版本号的对应关系见 [docs/拾光OneStar_版本时间轴.md](docs/拾光OneStar_版本时间轴.md)。
 
 ## 9. 许可
 
