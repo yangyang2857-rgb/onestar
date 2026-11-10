@@ -33,6 +33,7 @@
 - [10. 已知限制](#10-已知限制)
 - [11. Roadmap](#11-roadmap)
 - [12. 文档索引](#12-文档索引)
+- [12.1 跨平台开发与发布规范](#121-跨平台开发与发布规范)
 - [13. 参与贡献](#13-参与贡献)
 - [14. 许可与致谢](#14-许可与致谢)
 
@@ -336,7 +337,32 @@ python3 tools/verify_apk_signature.py build/onestar-0.12.2-signed.apk
 | [docs/发版规范.md](docs/发版规范.md) | SemVer 2.0.0 + Keep a Changelog + Conventional Commits + DORA 指标 + WCAG 2.2 的落地规则 |
 | [docs/拾光OneStar_版本时间轴.md](docs/拾光OneStar_版本时间轴.md) | 历代版本、旧流水号与语义化版本号的对应关系 |
 | [docs/签名与覆盖升级.md](docs/签名与覆盖升级.md) | 证书固定、CI Secret 注入、验签与排错 |
+| [docs/全生态开发与发布总纲.md](docs/全生态开发与发布总纲.md) | 六生态统一口径：全局时间表、身份与签名锚点、统一发布闸门 12 道、风险矩阵 |
+| [docs/README.md](docs/README.md) | docs 目录索引与阅读路径 |
+| [docs/ecosystems/](docs/ecosystems/) | 六个平台各自的完整要点原文（含签名命令与逐项自检清单） |
 | [LICENSE](LICENSE) | MIT |
+
+## 12.1 跨平台开发与发布规范
+
+拾光 OneStar 同时维护 Android、Web、HarmonyOS、Apple、Windows、Linux 六个生态。六个平台的商店政策、SDK 门槛、签名链条差异很大，且**大部分约束是不可逆的**——包名改一次等于换一款应用，Linux 构建基线升一次等于永久放弃旧系统用户，macOS 漏掉公证等于用户下载后直接打不开。
+
+因此跨平台发布规则被整理成一套可执行的规范，放在 [`docs/`](docs/)，入口是 [全生态开发与发布总纲](docs/全生态开发与发布总纲.md)：
+
+| 文档 | 内容 | 什么时候看 |
+| --- | --- | --- |
+| [全生态开发与发布总纲](docs/全生态开发与发布总纲.md) | 六个生态放在一起时的统一口径：全局时间表、身份与签名锚点、跨平台共性矩阵、统一发布闸门 12 道、风险矩阵 | 排期、定锚点、发版前 |
+| [docs 目录索引](docs/README.md) | 文档结构与阅读路径 | 第一次进 docs |
+| [docs/ecosystems/](docs/ecosystems/) | 六个平台各自的完整要点原文（含签名命令、逐项自检清单） | 需要具体命令或逐项核对 |
+
+### 三个最值得先知道的事实
+
+1. **时间表里"已生效"的那一栏才是重点**。总纲把"已生效"与"待生效"分开列：Android 已要求 target API 36（Wear OS / AAOS 35、TV / XR 34）与 16 KB 页面对齐；Apple 已要求 iOS 26 SDK 且 macOS 27 起仅支持 Apple Silicon；Windows 10 已全面 EOL 且 ESU 也已到期。不满足这些，包不是"体验差"，是**提交不进去**。
+2. **EV 证书不再绕过 SmartScreen**。Windows 侧唯一零警告路径是 Microsoft Store；非 Store 分发必须接受数周、数百次安装的信誉积累期。买 EV 只为消警告，钱是白花的。
+3. **六个平台的隐私审核本质是同一条链条**：权限声明 → SDK 实际行为 → 网络请求 → 商店隐私表单 → 隐私政策。五套表单应当从同一份数据流图派生；反过来做，必然出现"声明与实际不一致"的高频拒审。
+
+### 维护约定
+
+规范类文档会随平台政策老化。约定：每季度复跑总纲 §8 的四项时效检查（Android target API、Apple SDK 门槛、Windows App SDK 版本、HarmonyOS 上架规则）；平台政策变化时先改 `docs/ecosystems/` 原文，再同步总纲，避免两处漂移。
 
 ## 13. 参与贡献
 
