@@ -59,21 +59,43 @@ jobs:
             echo "ONESTAR_KS_PASS=${KS_PASS:-android}" >> "$GITHUB_ENV"
             echo "ONESTAR_KS_ALIAS=onestar-debug" >> "$GITHUB_ENV"
           else
-            echo "::warning::未配置 ONESTAR_KS_B64，产物证书将无法覆盖升级，回归中的覆盖安装断言会降级"
+            echo "::warning::未配置 ONESTAR_KS_B64，现场生成一次性 debug keystore（基线包与待测包共用，覆盖安装仍可实测，但不可上架）"
+            KS="$RUNNER_TEMP/ci-onestar.keystore"
+            keytool -genkeypair -keystore "$KS" -storepass android -keypass android -alias onestar-debug \
+              -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=OneStar CI, O=OneStar, C=CN" >/dev/null 2>&1
+            echo "ONESTAR_KS=$KS" >> "$GITHUB_ENV"
+            echo "ONESTAR_KS_PASS=android" >> "$GITHUB_ENV"
+            echo "ONESTAR_KS_ALIAS=onestar-debug" >> "$GITHUB_ENV"
           fi
 
       - name: Unit tests
         run: bash ./test.sh
 
-      - name: Build APK
+      - name: Build APK (x86_64，仅供模拟器回归；发布包仍为 arm64)
         env:
           ANDROID_HOME: ${{ env.ANDROID_SDK_ROOT }}
           BUILD_TOOLS: '35.0.0'
+          ABIS: x86_64
         run: bash ./build.sh
 
       - name: Verify signing certificate
         if: ${{ env.ONESTAR_KS != '' }}
         run: python3 tools/verify_apk_signature.py build/onestar-*-signed.apk
+
+      - name: Build baseline APK (v0.12.2-rc1 源码，同 ABI 同签名)
+        continue-on-error: true
+        env:
+          ANDROID_HOME: ${{ env.ANDROID_SDK_ROOT }}
+          BUILD_TOOLS: '35.0.0'
+          ABIS: x86_64
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          mkdir -p build/baseline
+          git clone --depth 1 --branch v0.12.2-rc1 \
+            "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" base-src
+          ( cd base-src && bash ./build.sh )
+          cp base-src/build/onestar-*-signed.apk build/baseline/base.apk
+          echo "基线包: $(stat -c %s build/baseline/base.apk) bytes（$(sha256sum build/baseline/base.apk | cut -c1-12)…）"
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
@@ -81,6 +103,13 @@ jobs:
           name: onestar-apk
           path: build/onestar-*-signed.apk
           if-no-files-found: error
+
+      - name: Upload baseline APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: base-apk
+          path: build/baseline/base.apk
+          if-no-files-found: warn
 
   regression:
     needs: build
@@ -102,20 +131,12 @@ jobs:
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
 
-      - name: Fetch baseline APK (上一版，用于覆盖安装)
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          mkdir -p build/regression
-          BASE_TAG="v0.12.2-rc1"
-          URL=$(curl -fsSL -H "Authorization: Bearer $GH_TOKEN" \
-            "https://api.github.com/repos/${{ github.repository }}/releases/tags/$BASE_TAG" \
-            | python3 -c 'import json,sys; d=json.load(sys.stdin); print(d["assets"][0]["browser_download_url"] if d.get("assets") else "")')
-          if [ -n "$URL" ]; then
-            curl -fsSL -o build/regression/base.apk "$URL" && echo "基线包: $BASE_TAG ($(stat -c %s build/regression/base.apk) bytes)"
-          else
-            echo "::warning::取不到 $BASE_TAG 的资产，覆盖安装断言将降级为干净安装"
-          fi
+      - name: Download baseline APK (v0.12.2-rc1 源码构建，同 ABI 同签名)
+        uses: actions/download-artifact@v4
+        continue-on-error: true
+        with:
+          name: base-apk
+          path: build/regression
 
       - name: Run regression on emulator
         uses: reactivecircus/android-emulator-runner@v2

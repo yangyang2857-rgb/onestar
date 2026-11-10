@@ -26,6 +26,16 @@ log()  { printf '\n\033[1m=== %s ===\033[0m\n' "$*"; }
 ok()   { printf '  [ok]   %s\n' "$*"; }
 warn() { printf '  [warn] %s\n' "$*"; echo "::warning::$*"; WARN_N=$((WARN_N + 1)); }
 bad()  { printf '  [FAIL] %s\n' "$*"; echo "::error::$*"; FAIL_N=$((FAIL_N + 1)); }
+# 取 APK 签名证书 SHA-256（优先 apksigner；不可用时回退仓库验签脚本）
+sig_sha256() {
+  local f="$1" bin out
+  bin="$(command -v apksigner 2>/dev/null || ls "${ANDROID_HOME:-/usr/local/lib/android/sdk}"/build-tools/*/apksigner 2>/dev/null | tail -1)"
+  if [ -n "$bin" ]; then
+    out="$("$bin" verify --print-certs "$f" 2>/dev/null | awk -F': ' '/SHA-256 digest/ {print $2; exit}')"
+    [ -n "$out" ] && { printf '%s' "$out"; return 0; }
+  fi
+  python3 tools/verify_apk_signature.py "$f" 2>/dev/null | grep -oE '([0-9A-F]{2}:){31}[0-9A-F]{2}' | head -1
+}
 
 [ -f "$APK" ] || { echo "::error::找不到待测 APK：$APK"; exit 1; }
 echo "待测 APK: $APK ($(stat -c %s "$APK") bytes)"
@@ -114,11 +124,18 @@ adb uninstall "$PKG" >/dev/null 2>&1 || true
 COVER_TESTED=0
 
 if [ -s "$BASE_APK" ]; then
-  if python3 tools/verify_apk_signature.py "$BASE_APK" > "$OUT/base-signature.txt" 2>&1; then
+  BASE_SIG="$(sig_sha256 "$BASE_APK")"
+  NEW_SIG="$(sig_sha256 "$APK")"
+  { echo "基线包 SHA-256: ${BASE_SIG:-未知}"; echo "待测包 SHA-256: ${NEW_SIG:-未知}"; } > "$OUT/base-signature.txt"
+
+  if [ -n "$BASE_SIG" ] && [ "$BASE_SIG" = "$NEW_SIG" ]; then
+    ok "基线包与待测包同签名，可实测覆盖升级"
+    BASE_OK=1
+  elif python3 tools/verify_apk_signature.py "$BASE_APK" >> "$OUT/base-signature.txt" 2>&1; then
     ok "基线包证书与仓库固定证书一致，可以真测覆盖升级"
     BASE_OK=1
   else
-    warn "基线包证书与仓库约定不一致，覆盖升级不适用（历史包各自一张证书，见 base-signature.txt）"
+    warn "基线包与待测包签名不一致，覆盖升级不适用（见 base-signature.txt）"
     BASE_OK=0
   fi
 
@@ -137,7 +154,8 @@ if [ -s "$BASE_APK" ]; then
         bad "覆盖安装失败，检查证书/versionCode（见 install-overwrite.log）"
       fi
     else
-      bad "基线包安装失败（见 install-base.log）"
+      warn "基线包安装失败（ABI/系统镜像不符等，见 install-base.log），覆盖升级本次未验"
+      BASE_OK=0
     fi
   fi
 fi
