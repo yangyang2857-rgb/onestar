@@ -13,6 +13,7 @@
 #   BUILD_TOOLS                       指定 build-tools 版本目录名，默认取最高版本
 #   ONESTAR_KS / ONESTAR_KS_PASS      签名 keystore 路径与口令；不提供则自动生成 debug 签名
 #   ONESTAR_KS_ALIAS                  签名别名，默认 onestar-debug / 与 keystore 对应
+#   ONESTAR_KS_DRIFT_OK               设为 1 时跳过固定证书指纹校验（仅供 CI 回归构建，产物不可发布）
 #   ZIG                               zig 可执行文件路径；提供则编译 jni/ 下的 .so，否则跳过原生库
 #   ABIS                              目标 ABI，默认 arm64-v8a
 #   MIN_SDK / TARGET_SDK              默认 21 / 35
@@ -192,7 +193,12 @@ if [ -z "$KS" ]; then
 else
   KS_PASS="${ONESTAR_KS_PASS:?设置了 ONESTAR_KS 就必须同时给 ONESTAR_KS_PASS}"
   KS_ALIAS="${ONESTAR_KS_ALIAS:?设置了 ONESTAR_KS 就必须同时给 ONESTAR_KS_ALIAS}"
-  SIGNING_FIXED=1
+  if [ "${ONESTAR_KS_DRIFT_OK:-0}" = "1" ]; then
+    log "ONESTAR_KS_DRIFT_OK=1：本次为回归构建，允许证书与仓库固定值不一致（产物不可上架、不可覆盖已装正式版）"
+    SIGNING_FIXED=0
+  else
+    SIGNING_FIXED=1
+  fi
 fi
 
 APK="$OUT/onestar-$VN-signed.apk"
