@@ -55,6 +55,9 @@ Android 会判定为降级、拒绝覆盖安装。所以这里把两套编号彻
 - 新增 `tools/verify_apk_signature.py`：解析 APK 的 v1 签名块，打印证书主题与 SHA-256，并与仓库约定的固定指纹比对；固定证书构建时指纹漂移会让构建失败，一次性 debug 证书只打印不阻断
 - CI 新增 `Restore signing keystore`（还原固定证书）与 `Verify signing certificate`（验签）两步；未配置 Secret 时输出显式警告，提示该产物的覆盖升级能力不可用
 - 新增 `docs/签名与覆盖升级.md`：签名约定、Secret 配置、验签与排错、安全边界
+- 新增模拟器回归：`tools/ci/regression.sh` 用基线包（`v0.12.2-rc1`）做覆盖安装、冷启动、字号三档、四向旋转、8 语言冷启动、崩溃日志与节点越界检查，证据落 `build/regression`；`.github/workflows/regression.yml` 负责起 API 35 的 x86_64 模拟器跑它，失败判红、主观项只发 warning
+- 新增 `tools/ci/check_bounds.py`：解析 `uiautomator dump` 的节点矩形，检查是否越出屏幕；只覆盖系统控件层，Canvas 自绘层仍需看截图
+- 回归替代范围写进 `docs/发版规范.md` §3：覆盖安装、朝向、字号、语言、崩溃与控件越界由 CI 判，视觉观感/刘海遮挡/TalkBack 播报/厂商字体差异仍须人看，不得因 CI 绿填 ✅
 - README 重写扩充：功能一览、AGP 职责对照、安装与覆盖升级、数据与隐私、FAQ、Roadmap、文档索引
 
 ### 1.0.0 — 计划

@@ -1,0 +1,137 @@
+name: regression
+
+# 模拟器回归：替代人工真机回归中"机器能判"的那部分（见 docs/发版规范.md §3 脚注）。
+# 不跑 Gradle，构建复用 build.sh；回归脚本为 tools/ci/regression.sh。
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+    paths:
+      - 'java/**'
+      - 'AndroidManifest.xml'
+      - 'build.sh'
+      - 'tools/**'
+      - '.github/workflows/regression.yml'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'java/**'
+      - 'AndroidManifest.xml'
+      - 'build.sh'
+
+concurrency:
+  group: regression-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          packages: 'platforms;android-35 build-tools;35.0.0 platform-tools'
+
+      - name: Install zig (用于交叉编译 jni)
+        run: |
+          python3 -m pip install --user ziglang
+          echo "ZIG=$(python3 -c 'import ziglang,os;print(os.path.join(os.path.dirname(ziglang.__file__),"zig"))')" >> $GITHUB_ENV
+          chmod +x "$(python3 -c 'import ziglang,os;print(os.path.join(os.path.dirname(ziglang.__file__),"zig"))')" || true
+
+      - name: Restore signing keystore (固定证书，覆盖升级前置)
+        env:
+          KS_B64: ${{ secrets.ONESTAR_KS_B64 }}
+          KS_PASS: ${{ secrets.ONESTAR_KS_PASS }}
+        run: |
+          if [ -n "$KS_B64" ]; then
+            mkdir -p ci-keys
+            printf '%s' "$KS_B64" | base64 -d > ci-keys/onestar-debug.keystore
+            echo "ONESTAR_KS=$PWD/ci-keys/onestar-debug.keystore" >> "$GITHUB_ENV"
+            echo "ONESTAR_KS_PASS=${KS_PASS:-android}" >> "$GITHUB_ENV"
+            echo "ONESTAR_KS_ALIAS=onestar-debug" >> "$GITHUB_ENV"
+          else
+            echo "::warning::未配置 ONESTAR_KS_B64，产物证书将无法覆盖升级，回归中的覆盖安装断言会降级"
+          fi
+
+      - name: Unit tests
+        run: bash ./test.sh
+
+      - name: Build APK
+        env:
+          ANDROID_HOME: ${{ env.ANDROID_SDK_ROOT }}
+          BUILD_TOOLS: '35.0.0'
+        run: bash ./build.sh
+
+      - name: Verify signing certificate
+        if: ${{ env.ONESTAR_KS != '' }}
+        run: python3 tools/verify_apk_signature.py build/onestar-*-signed.apk
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: onestar-apk
+          path: build/onestar-*-signed.apk
+          if-no-files-found: error
+
+  regression:
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download APK
+        uses: actions/download-artifact@v4
+        with:
+          name: onestar-apk
+          path: build
+
+      - name: Enable KVM (模拟器硬件加速)
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' \
+            | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Fetch baseline APK (上一版，用于覆盖安装)
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          mkdir -p build/regression
+          BASE_TAG="v0.12.2-rc1"
+          URL=$(curl -fsSL -H "Authorization: Bearer $GH_TOKEN" \
+            "https://api.github.com/repos/${{ github.repository }}/releases/tags/$BASE_TAG" \
+            | python3 -c 'import json,sys; d=json.load(sys.stdin); print(d["assets"][0]["browser_download_url"] if d.get("assets") else "")')
+          if [ -n "$URL" ]; then
+            curl -fsSL -o build/regression/base.apk "$URL" && echo "基线包: $BASE_TAG ($(stat -c %s build/regression/base.apk) bytes)"
+          else
+            echo "::warning::取不到 $BASE_TAG 的资产，覆盖安装断言将降级为干净安装"
+          fi
+
+      - name: Run regression on emulator
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          target: default
+          arch: x86_64
+          profile: pixel_6
+          disable-animations: true
+          emulator-options: -no-snapshot-save -no-boot-anim -gpu swiftshader_indirect -noaudio -no-window -camera-back none -camera-front none
+          script: bash tools/ci/regression.sh
+
+      - name: Upload regression evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: regression-evidence
+          path: build/regression/
+          if-no-files-found: warn
