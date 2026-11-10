@@ -116,6 +116,9 @@ log "0/6 设备与包信息"
 adb shell getprop ro.build.version.sdk | tr -d '\r' | sed 's/^/  API: /'
 echo "  屏幕: $(screen_size)"
 echo "  基线包: $([ -s "$BASE_APK" ] && echo "有 ($(stat -c %s "$BASE_APK") bytes)" || echo "无")"
+echo "  设备 ABI: $(adb shell getprop ro.product.cpu.abilist 2>/dev/null | tr -d '\r')"
+echo "  包内 ABI: $(unzip -l "$APK" 2>/dev/null | awk '/lib\//{split($4,a,"/"); print a[2]}' | sort -u | tr '\n' ' ')"
+echo "  基线内 ABI: $([ -s "$BASE_APK" ] && unzip -l "$BASE_APK" 2>/dev/null | awk '/lib\//{split($4,a,"/"); print a[2]}' | sort -u | tr '\n' ' ' || echo 无)"
 
 # ---------- 1. 覆盖安装 ----------
 
@@ -140,14 +143,14 @@ if [ -s "$BASE_APK" ]; then
   fi
 
   if [ "$BASE_OK" = "1" ]; then
-    if adb install -r -d "$BASE_APK" 2>&1 | tee "$OUT/install-base.log" | grep -q Success; then
+    if adb install -r -d "$BASE_APK" > "$OUT/install-base.log" 2>&1 && grep -q Success "$OUT/install-base.log"; then
       ok "基线包安装成功"
       BASE_VC="$(adb shell dumpsys package "$PKG" 2>/dev/null | tr -d '\r' | awk -F= '/versionCode=/ {print $2; exit}' | awk '{print $1}')"
       echo "  基线 versionCode: ${BASE_VC:-未知}"
       launch
       alive && ok "基线包可启动" || bad "基线包装上了但起不来（环境问题，后续结论不可信）"
       shot "00-base-launched"
-      if adb install -r "$APK" 2>&1 | tee "$OUT/install-overwrite.log" | grep -q Success; then
+      if adb install -r "$APK" > "$OUT/install-overwrite.log" 2>&1 && grep -q Success "$OUT/install-overwrite.log"; then
         ok "覆盖安装成功（未卸载、未丢数据目录）"
         COVER_TESTED=1
       else
@@ -155,6 +158,7 @@ if [ -s "$BASE_APK" ]; then
       fi
     else
       warn "基线包安装失败（ABI/系统镜像不符等，见 install-base.log），覆盖升级本次未验"
+      sed 's/^/     /' "$OUT/install-base.log" | head -3
       BASE_OK=0
     fi
   fi
@@ -163,8 +167,12 @@ fi
 if [ "$COVER_TESTED" = "0" ]; then
   warn "未完成覆盖安装验证：改用卸载后干净安装，只测新版本身"
   adb uninstall "$PKG" >/dev/null 2>&1 || true
-  adb install -r "$APK" 2>&1 | tee "$OUT/install-clean.log" | grep -q Success \
-    && ok "干净安装成功" || bad "干净安装失败（见 install-clean.log）"
+  if adb install -r "$APK" > "$OUT/install-clean.log" 2>&1 && grep -q Success "$OUT/install-clean.log"; then
+    ok "干净安装成功"
+  else
+    bad "干净安装失败（见 install-clean.log）"
+    sed 's/^/     /' "$OUT/install-clean.log" | head -5
+  fi
 fi
 
 NEW_VC="$(adb shell dumpsys package "$PKG" 2>/dev/null | tr -d '\r' | awk -F= '/versionCode=/ {print $2; exit}' | awk '{print $1}')"
