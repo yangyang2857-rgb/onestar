@@ -196,9 +196,16 @@ else
 fi
 
 APK="$OUT/onestar-$VN-signed.apk"
+# 签名方案显式锁定，不依赖 build-tools 的默认值：
+#   v1(JAR) + v2(APK Signature Scheme v2) 必须开 —— 与 README §5.3 的声明一致，
+#   且 minSdk 21 的机器只能靠 v1 校验。
+#   v3/v4 显式关闭 —— 升 build-tools / targetSdk 后默认值可能变化（v4 还会额外产出 .idsig），
+#   证书与分发方式（GitHub Release + 侧载）没变之前不要引入。
 "$BT/apksigner" sign \
   --ks "$KS" --ks-pass "pass:$KS_PASS" --key-pass "pass:$KS_PASS" \
   --ks-key-alias "$KS_ALIAS" --min-sdk-version "$MIN_SDK" \
+  --v1-signing-enabled true --v2-signing-enabled true \
+  --v3-signing-enabled false --v4-signing-enabled false \
   --out "$APK" "$WORK/aligned.apk"
 "$BT/apksigner" verify "$APK"
 "$BT/aapt" dump badging "$APK" | head -3 || true

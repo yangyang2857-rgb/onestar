@@ -2,6 +2,8 @@
 
 ![Android](https://img.shields.io/badge/Android-5.0%2B%20(API%2021)-3DDC84?logo=android&logoColor=white)
 ![targetSdk](https://img.shields.io/badge/targetSdk-35-3DDC84)
+
+> badge 里的 `targetSdk 35` 是**当前实际构建值**（`AndroidManifest.xml` + `build.sh` 的 `TARGET_SDK`）。Play 已从 2026-08-31 起要求 36，本项目走 GitHub Release + 侧载分发，故仍为 35；**一旦要上架 Play，发版前必须先把 `TARGET_SDK` 与 manifest 同步升到 36**，并完成 16 KB 对齐与 12 道闸门复检。
 ![Gradle](https://img.shields.io/badge/Gradle-不需要-1f6feb)
 ![Build](https://img.shields.io/badge/build-aapt2%20%2B%20javac%20%2B%20d8%20%2B%20apksigner-8957e5)
 ![Languages](https://img.shields.io/badge/i18n-15%20种语言-f2cc60)
@@ -108,7 +110,7 @@ apksigner sign ──►  onestar-<version>-signed.apk
 | 依赖 | 版本 | 说明 |
 | --- | --- | --- |
 | JDK | 17+ | 只需要其中的 `javac` / `keytool` |
-| Android SDK build-tools | 34+ | 提供 `aapt2` / `d8` / `apksigner` |
+| Android SDK build-tools | 35.0.0+ | 提供 `aapt2` / `d8` / `apksigner`；34 也能跑通构建，但 16 KB 对齐校验与 targetSdk 36 需要 35.0.0+（本项目另有 `tools/zip16k.py` 兜底） |
 | Android SDK platform | android-35 | 提供 `android.jar` |
 | Python | 3.8+ | 仅用于 `tools/zip16k.py` |
 | zig | 0.11+ | 可选，用于编译 `jni/src/*.c`；不提供则跳过原生库 |
@@ -171,6 +173,9 @@ JAVA_HOME=/path/to/jdk-17 ./test.sh
 ├── assets/
 │   └── COPYRIGHT.txt            # 署名信息（随 APK 打包，也用于版本内说明）
 ├── docs/
+│   ├── README.md                # docs 索引、阅读顺序与维护约定
+│   ├── 全生态开发与发布总纲.md  # 六平台整合总纲（三失效面 / 时间表 / 12 道闸门）
+│   ├── ecosystems/              # 六个平台各自的要点原文
 │   ├── 发版规范.md              # 版本号规则与发布纪律
 │   ├── 拾光OneStar_版本时间轴.md  # 历代版本与旧流水号对照
 │   ├── 签名与覆盖升级.md        # 证书固定、CI 注入与验签流程
@@ -209,7 +214,7 @@ JAVA_HOME=/path/to/jdk-17 ./test.sh
 
 ### 5.1 16 KB 页大小对齐
 
-Android 15 起部分设备使用 16 KB 内存页，未按 16 KB 对齐的 `.so` 会加载失败。build-tools 34 的 `zipalign` 还不支持 `-P 16`，因此这里自己写了 `tools/zip16k.py`：把 `lib/**/*.so` 以 STORED（不压缩）方式重打包，并用 ZIP extra field 把数据偏移顶到 16384 的倍数，其余条目按 4 字节对齐。脚本自带 `--check` 校验，构建末尾会打印每个 `.so` 的实际偏移与对齐结果。
+Android 15 起部分设备使用 16 KB 内存页，未按 16 KB 对齐的 `.so` 会加载失败。build-tools 34 及以下的 `zipalign` 不支持 `-P 16`（35.0.0+ 才支持），因此这里自己写了 `tools/zip16k.py`：把 `lib/**/*.so` 以 STORED（不压缩）方式重打包，并用 ZIP extra field 把数据偏移顶到 16384 的倍数，其余条目按 4 字节对齐。脚本自带 `--check` 校验，构建末尾会打印每个 `.so` 的实际偏移与对齐结果。
 
 ### 5.2 不装 NDK 的 JNI
 
@@ -229,7 +234,7 @@ Android 的覆盖安装由系统做三件事的校验：**包名相同**、**证
 | 签名证书主题 | `CN=OneStar Debug, O=OneStar, C=CN` |
 | 证书 SHA-256 | `B0:F1:E2:A1:36:84:16:90:0A:AC:9C:A2:F9:9F:19:1C:3F:E2:C4:13:43:50:3A:7F:38:A0:F7:98:79:D5:4C:D1` |
 | 有效期 | 2026-11-07 → 2054-03-25 |
-| 签名方案 | v1（JAR）+ v2（APK Signature Scheme v2） |
+| 签名方案 | v1（JAR）+ v2（APK Signature Scheme v2）——`build.sh` 已用 `--v1-signing-enabled true --v2-signing-enabled true --v3-signing-enabled false --v4-signing-enabled false` 显式锁定，不依赖 build-tools 默认值 |
 
 CI 通过仓库 Secret 注入这张证书，而不是现场生成：
 
@@ -252,7 +257,7 @@ python3 tools/verify_apk_signature.py build/onestar-0.12.2-signed.apk
 
 ## 6. CI
 
-`.github/workflows/android.yml` 是一份开箱即用的工作流：在 Ubuntu 上装 build-tools 34 与 platform 35，先跑 `test.sh` 再跑 `build.sh`，把签名后的 APK 作为 workflow artifact 上传。整个流水线同样不含 Gradle。
+`.github/workflows/android.yml` 是一份开箱即用的工作流：在 Ubuntu 上装 build-tools 35.0.0 与 platform 35，先跑 `test.sh` 再跑 `build.sh`，把签名后的 APK 作为 workflow artifact 上传。整个流水线同样不含 Gradle。
 
 触发方式：推送到 `main`、打 `v*` 标签，或在 **Actions → build → Run workflow** 手动执行。产物在该次运行的 Artifacts → `onestar-apk`。
 
@@ -295,7 +300,7 @@ python3 tools/verify_apk_signature.py build/onestar-0.12.2-signed.apk
 新包的 `versionCode` 小于等于已装版本。`versionCode` 只增不减，改大后重新构建即可。
 
 **Q：`build.sh` 说找不到 `aapt2` / `d8` / `apksigner`？**
-`ANDROID_HOME` 没指对，或 build-tools 低于 34。可以先 `ls $ANDROID_HOME/build-tools` 确认，必要时用 `BUILD_TOOLS=34.0.0` 显式指定。
+`ANDROID_HOME` 没指对，或 build-tools 版本过低（本项目要求 35.0.0+）。可以先 `ls $ANDROID_HOME/build-tools` 确认，必要时用 `BUILD_TOOLS=35.0.0` 显式指定（CI 已锁定该版本）。
 
 **Q：为什么没有 `res/values-zh/` 这类多语言目录？**
 界面文案不交给系统资源系统，而是集中在 `I18n.java` 的文案表里，由 `TextDraw` 处理换行、断词与 RTL 重排。`res/` 里只有系统必须读取的图标名、小组件标题等少量条目，`res/xml/locales_config.xml` 仅用于接入 Android 13 的「应用语言」入口。
@@ -356,13 +361,13 @@ python3 tools/verify_apk_signature.py build/onestar-0.12.2-signed.apk
 
 ### 三个最值得先知道的事实
 
-1. **时间表里"已生效"的那一栏才是重点**。总纲把"已生效"与"待生效"分开列：Android 已要求 target API 36（Wear OS / AAOS 35、TV / XR 34）与 16 KB 页面对齐；Apple 已要求 iOS 26 SDK 且 macOS 27 起仅支持 Apple Silicon；Windows 10 已全面 EOL 且 ESU 也已到期。不满足这些，包不是"体验差"，是**提交不进去**。
+1. **时间表里"已生效"的那一栏才是重点**。总纲把"已生效"与"待生效"分开列：Android 已要求 target API 36（Wear OS / AAOS 35、TV / XR 34）与 16 KB 页面对齐；Apple 已要求 iOS 26 SDK 且 macOS 27 起仅支持 Apple Silicon；Windows 10 已全面 EOL（消费者 ESU 于 2026-10-13 结束，商业 ESU 最长可至 2028-01）。不满足这些，包不是"体验差"，是**提交不进去**。（本项目当前构建 `targetSdk 35` 并走 GitHub Release 侧载分发，所以能继续发；一旦上架 Play，必须先升 36——同一事实见 §5 与顶部 badge 注。）
 2. **EV 证书不再绕过 SmartScreen**。Windows 侧唯一零警告路径是 Microsoft Store；非 Store 分发必须接受数周、数百次安装的信誉积累期。买 EV 只为消警告，钱是白花的。
 3. **六个平台的隐私审核本质是同一条链条**：权限声明 → SDK 实际行为 → 网络请求 → 商店隐私表单 → 隐私政策。五套表单应当从同一份数据流图派生；反过来做，必然出现"声明与实际不一致"的高频拒审。
 
 ### 维护约定
 
-规范类文档会随平台政策老化。约定：每季度复跑总纲 §8 的四项时效检查（Android target API、Apple SDK 门槛、Windows App SDK 版本、HarmonyOS 上架规则）；平台政策变化时先改 `docs/ecosystems/` 原文，再同步总纲，避免两处漂移。
+规范类文档会随平台政策老化。约定：每季度复跑总纲 §8 的时效检查（Android target API、Apple SDK 门槛、Windows App SDK 版本、HarmonyOS 上架规则，外加 Chrome 发布周期、OWASP Top 10 与 WCAG 版本）；平台政策变化时先改 `docs/ecosystems/` 原文，再同步总纲，避免两处漂移。**改完总纲的时效性条目，必须回写本节摘要与顶部 badge（targetSdk 等）**——同一事实曾在总纲与 README 各错一遍。
 
 ## 13. 参与贡献
 
