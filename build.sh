@@ -164,8 +164,15 @@ else
 fi
 
 # ---------- 8. 16 KB 页对齐重打包 ----------
-log "zip16k 重打包"
-python3 tools/zip16k.py "$WORK/unsigned.apk" "$WORK/aligned.apk"
+log "16 KB 页对齐重打包"
+# 优先用 build-tools 官方 zipalign（-P 16 指定 16 KB 页）；它产出的对齐 extra 是 apksigner 认得的格式，
+# 签名后偏移不会被改。老版本 build-tools 没有 -P 时才退回自研 zip16k.py。
+if "$BT/zipalign" -h 2>&1 | grep -q "pagesize_kb"; then
+  "$BT/zipalign" -P 16 -f 4 "$WORK/unsigned.apk" "$WORK/aligned.apk"
+  log "zipalign -P 16 完成"
+else
+  python3 tools/zip16k.py "$WORK/unsigned.apk" "$WORK/aligned.apk"
+fi
 
 # ---------- 9. 签名 ----------
 # ONESTAR_KS_B64：把 keystore 以 base64 内联进环境变量，供 CI 从 Secret 注入。
@@ -207,26 +214,31 @@ APK="$OUT/onestar-$VN-signed.apk"
 #   且 minSdk 21 的机器只能靠 v1 校验。
 #   v3/v4 显式关闭 —— 升 build-tools / targetSdk 后默认值可能变化（v4 还会额外产出 .idsig），
 #   证书与分发方式（GitHub Release + 侧载）没变之前不要引入。
-# 签名顺序很关键：v1(JAR) 会重写 zip、打乱条目偏移；v2 只在文件尾追加签名块、不动偏移。
-# 所以必须 v1 → 16KB 对齐 → v2。否则 extractNativeLibs=false 的包在 API 34+ 上会
-# INSTALL_FAILED_INVALID_APK: Failed to extract native libraries, res=-2（装不上）。
-SIGN_ARGS=(--ks "$KS" --ks-pass "pass:$KS_PASS" --key-pass "pass:$KS_PASS"
-           --ks-key-alias "$KS_ALIAS" --min-sdk-version "$MIN_SDK")
-
-"$BT/apksigner" sign "${SIGN_ARGS[@]}" \
-  --v1-signing-enabled true --v2-signing-enabled false \
+# 注意：apksigner 的 v1(JAR) 步骤会重写 zip，条目偏移可能被改。对齐必须用 apksigner 认得
+# 的 zipalign extra（上面的 -P 16），签名后再复核偏移；否则 extractNativeLibs=false 的包
+# 在 API 34+ 上会 INSTALL_FAILED_INVALID_APK: Failed to extract native libraries。
+"$BT/apksigner" sign \
+  --ks "$KS" --ks-pass "pass:$KS_PASS" --key-pass "pass:$KS_PASS" \
+  --ks-key-alias "$KS_ALIAS" --min-sdk-version "$MIN_SDK" \
+  --v1-signing-enabled true --v2-signing-enabled true \
   --v3-signing-enabled false --v4-signing-enabled false \
-  --out "$WORK/v1signed.apk" "$WORK/aligned.apk"
-
-python3 tools/zip16k.py "$WORK/v1signed.apk" "$WORK/aligned2.apk"
-
-"$BT/apksigner" sign "${SIGN_ARGS[@]}" \
-  --v1-signing-enabled false --v2-signing-enabled true \
-  --v3-signing-enabled false --v4-signing-enabled false \
-  --out "$APK" "$WORK/aligned2.apk"
-
+  --out "$APK" "$WORK/aligned.apk"
 "$BT/apksigner" verify "$APK"
+# 签名后复核：apksigner 的 v1 重写若打乱条目偏移，API 34+ 会装不上（extractNativeLibs=false）
 python3 - "$APK" <<'PYEOF' || { echo "::error::签名后 so 未按 16 KB 对齐（API 34+ 会装不上）"; exit 1; }
+import sys, zipfile, struct
+z = zipfile.ZipFile(sys.argv[1]); bad = 0
+for i in z.infolist():
+    if not i.filename.endswith('.so'):
+        continue
+    z.fp.seek(i.header_offset); h = z.fp.read(30)
+    fl, el = struct.unpack('<HH', h[26:30])
+    off = i.header_offset + 30 + fl + el
+    ok = (off % 16384 == 0) and (i.compress_type == 0)
+    print("  %-32s off=%-9d %s" % (i.filename, off, "OK" if ok else "BAD"))
+    bad += 0 if ok else 1
+sys.exit(1 if bad else 0)
+PYEOF' || { echo "::error::签名后 so 未按 16 KB 对齐（API 34+ 会装不上）"; exit 1; }
 import sys, zipfile, struct
 z = zipfile.ZipFile(sys.argv[1]); bad = 0
 for i in z.infolist():
