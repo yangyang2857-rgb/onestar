@@ -207,13 +207,39 @@ APK="$OUT/onestar-$VN-signed.apk"
 #   且 minSdk 21 的机器只能靠 v1 校验。
 #   v3/v4 显式关闭 —— 升 build-tools / targetSdk 后默认值可能变化（v4 还会额外产出 .idsig），
 #   证书与分发方式（GitHub Release + 侧载）没变之前不要引入。
-"$BT/apksigner" sign \
-  --ks "$KS" --ks-pass "pass:$KS_PASS" --key-pass "pass:$KS_PASS" \
-  --ks-key-alias "$KS_ALIAS" --min-sdk-version "$MIN_SDK" \
-  --v1-signing-enabled true --v2-signing-enabled true \
+# 签名顺序很关键：v1(JAR) 会重写 zip、打乱条目偏移；v2 只在文件尾追加签名块、不动偏移。
+# 所以必须 v1 → 16KB 对齐 → v2。否则 extractNativeLibs=false 的包在 API 34+ 上会
+# INSTALL_FAILED_INVALID_APK: Failed to extract native libraries, res=-2（装不上）。
+SIGN_ARGS=(--ks "$KS" --ks-pass "pass:$KS_PASS" --key-pass "pass:$KS_PASS"
+           --ks-key-alias "$KS_ALIAS" --min-sdk-version "$MIN_SDK")
+
+"$BT/apksigner" sign "${SIGN_ARGS[@]}" \
+  --v1-signing-enabled true --v2-signing-enabled false \
   --v3-signing-enabled false --v4-signing-enabled false \
-  --out "$APK" "$WORK/aligned.apk"
+  --out "$WORK/v1signed.apk" "$WORK/aligned.apk"
+
+python3 tools/zip16k.py "$WORK/v1signed.apk" "$WORK/aligned2.apk"
+
+"$BT/apksigner" sign "${SIGN_ARGS[@]}" \
+  --v1-signing-enabled false --v2-signing-enabled true \
+  --v3-signing-enabled false --v4-signing-enabled false \
+  --out "$APK" "$WORK/aligned2.apk"
+
 "$BT/apksigner" verify "$APK"
+python3 - "$APK" <<'PYEOF' || { echo "::error::签名后 so 未按 16 KB 对齐（API 34+ 会装不上）"; exit 1; }
+import sys, zipfile, struct
+z = zipfile.ZipFile(sys.argv[1]); bad = 0
+for i in z.infolist():
+    if not i.filename.endswith('.so'):
+        continue
+    z.fp.seek(i.header_offset); h = z.fp.read(30)
+    fl, el = struct.unpack('<HH', h[26:30])
+    off = i.header_offset + 30 + fl + el
+    ok = (off % 16384 == 0) and (i.compress_type == 0)
+    print("  %-32s off=%-9d %s" % (i.filename, off, "OK" if ok else "BAD"))
+    bad += 0 if ok else 1
+sys.exit(1 if bad else 0)
+PYEOF
 "$BT/aapt" dump badging "$APK" | head -3 || true
 
 # 固定证书时校验指纹，漂移即失败；一次性 debug 证书只打印指纹供参考
