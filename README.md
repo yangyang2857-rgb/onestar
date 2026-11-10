@@ -179,6 +179,7 @@ JAVA_HOME=/path/to/jdk-17 ./test.sh
 │   ├── 发版规范.md              # 版本号规则与发布纪律
 │   ├── 拾光OneStar_版本时间轴.md  # 历代版本与旧流水号对照
 │   ├── 签名与覆盖升级.md        # 证书固定、CI 注入与验签流程
+│   ├── 凭据与令牌管理.md        # PAT 类型与权限、传递方式、泄露处置
 │   └── screenshots/             # README 引用的截图
 ├── java/com/yangyang2857rgb/onestar/
 │   ├── MainActivity.java        # 入口，手势/生命周期
@@ -342,6 +343,7 @@ python3 tools/verify_apk_signature.py build/onestar-0.12.2-signed.apk
 | [docs/发版规范.md](docs/发版规范.md) | SemVer 2.0.0 + Keep a Changelog + Conventional Commits + DORA 指标 + WCAG 2.2 的落地规则 |
 | [docs/拾光OneStar_版本时间轴.md](docs/拾光OneStar_版本时间轴.md) | 历代版本、旧流水号与语义化版本号的对应关系 |
 | [docs/签名与覆盖升级.md](docs/签名与覆盖升级.md) | 证书固定、CI Secret 注入、验签与排错 |
+| [docs/凭据与令牌管理.md](docs/凭据与令牌管理.md) | PAT 类型与最小权限、令牌传递方式、提交前自检与泄露处置 |
 | [docs/全生态开发与发布总纲.md](docs/全生态开发与发布总纲.md) | 六生态统一口径：全局时间表、身份与签名锚点、统一发布闸门 12 道、风险矩阵 |
 | [docs/README.md](docs/README.md) | docs 目录索引与阅读路径 |
 | [docs/ecosystems/](docs/ecosystems/) | 六个平台各自的完整要点原文（含签名命令与逐项自检清单） |
