@@ -167,7 +167,7 @@ fi
 log "16 KB 页对齐重打包"
 # 优先用 build-tools 官方 zipalign（-P 16 指定 16 KB 页）；它产出的对齐 extra 是 apksigner 认得的格式，
 # 签名后偏移不会被改。老版本 build-tools 没有 -P 时才退回自研 zip16k.py。
-if "$BT/zipalign" -h 2>&1 | grep -q "pagesize_kb"; then
+if "$BT/zipalign" 2>&1 | grep -q "pagesize_kb"; then
   "$BT/zipalign" -P 16 -f 4 "$WORK/unsigned.apk" "$WORK/aligned.apk"
   log "zipalign -P 16 完成"
 else
@@ -224,44 +224,8 @@ APK="$OUT/onestar-$VN-signed.apk"
   --v3-signing-enabled false --v4-signing-enabled false \
   --out "$APK" "$WORK/aligned.apk"
 "$BT/apksigner" verify "$APK"
-# 签名后复核：apksigner 的 v1 重写若打乱条目偏移，API 34+ 会装不上（extractNativeLibs=false）
-python3 - "$APK" <<'PYEOF' || { echo "::error::签名后 so 未按 16 KB 对齐（API 34+ 会装不上）"; exit 1; }
-import sys, zipfile, struct
-z = zipfile.ZipFile(sys.argv[1]); bad = 0
-for i in z.infolist():
-    if not i.filename.endswith('.so'):
-        continue
-    z.fp.seek(i.header_offset); h = z.fp.read(30)
-    fl, el = struct.unpack('<HH', h[26:30])
-    off = i.header_offset + 30 + fl + el
-    ok = (off % 16384 == 0) and (i.compress_type == 0)
-    print("  %-32s off=%-9d %s" % (i.filename, off, "OK" if ok else "BAD"))
-    bad += 0 if ok else 1
-sys.exit(1 if bad else 0)
-PYEOF' || { echo "::error::签名后 so 未按 16 KB 对齐（API 34+ 会装不上）"; exit 1; }
-import sys, zipfile, struct
-z = zipfile.ZipFile(sys.argv[1]); bad = 0
-for i in z.infolist():
-    if not i.filename.endswith('.so'):
-        continue
-    z.fp.seek(i.header_offset); h = z.fp.read(30)
-    fl, el = struct.unpack('<HH', h[26:30])
-    off = i.header_offset + 30 + fl + el
-    ok = (off % 16384 == 0) and (i.compress_type == 0)
-    print("  %-32s off=%-9d %s" % (i.filename, off, "OK" if ok else "BAD"))
-    bad += 0 if ok else 1
-sys.exit(1 if bad else 0)
-PYEOF
-"$BT/aapt" dump badging "$APK" | head -3 || true
-
-# 固定证书时校验指纹，漂移即失败；一次性 debug 证书只打印指纹供参考
-if [ -f tools/verify_apk_signature.py ]; then
-  if [ "$SIGNING_FIXED" = "1" ]; then
-    python3 tools/verify_apk_signature.py "$APK"
-  else
-    python3 tools/verify_apk_signature.py "$APK" --print-only || true
-  fi
-fi
-
-log "完成：$APK"
-ls -lh "$APK"
+# 签名后复核：apksigner 的 v1 步骤会重写 zip，若偏移被改，API 34+ 会装不上（extractNativeLibs=false）
+python3 tools/ci/check_align.py "$APK" || {
+  echo "::error::签名后 .so 未按 16 KB 对齐（API 34+ 会装不上）"
+  exit 1
+}
