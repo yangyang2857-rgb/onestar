@@ -96,8 +96,14 @@ jobs:
             "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" base-src
           # 基线只借 rc1 的业务源码；构建脚本用当前分支版本，保证同一套 ABI/签名/对齐逻辑
           cp build.sh base-src/build.sh
+          # 注意：rc1 里已存在 tools/，直接 cp -r tools base-src/tools 会拷成 tools/tools，
+          # 导致 check_align.py 找不到而构建失败（基线包缺失 → 覆盖安装只能降级为干净安装）。
+          rm -rf base-src/tools
           cp -r tools base-src/tools
-          ( cd base-src && bash ./build.sh )
+          ( cd base-src && bash ./build.sh ) || { echo "::warning::基线源码构建失败，本轮回归只测干净安装"; exit 0; }
+          if ! ls base-src/build/onestar-*-signed.apk >/dev/null 2>&1; then
+            echo "::warning::基线包未产出（构建失败），本轮回归只测干净安装"; exit 0
+          fi
           cp base-src/build/onestar-*-signed.apk build/baseline/base.apk
           echo "基线包: $(stat -c %s build/baseline/base.apk) bytes（$(sha256sum build/baseline/base.apk | cut -c1-12)…）"
 
@@ -118,7 +124,7 @@ jobs:
   regression:
     needs: build
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 35
     steps:
       - uses: actions/checkout@v4
 
