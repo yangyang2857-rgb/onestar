@@ -1,9 +1,9 @@
 # 拾光 OneStar
 
 ![Android](https://img.shields.io/badge/Android-5.0%2B%20(API%2021)-3DDC84?logo=android&logoColor=white)
-![targetSdk](https://img.shields.io/badge/targetSdk-35-3DDC84)
+![targetSdk](https://img.shields.io/badge/targetSdk-37-3DDC84)
 
-> badge 里的 `targetSdk 35` 是**当前实际构建值**（`AndroidManifest.xml` + `build.sh` 的 `TARGET_SDK`）。Play 已从 2026-08-31 起要求 36，本项目走 GitHub Release + 侧载分发，故仍为 35；**一旦要上架 Play，发版前必须先把 `TARGET_SDK` 与 manifest 同步升到 36**，并完成 16 KB 对齐与 12 道闸门复检。
+> badge 里的 `targetSdk 37` 是**当前实际构建值**（`AndroidManifest.xml` + `build.sh` 的 `TARGET_SDK`）。Play 已从 2026-08-31 起要求 36，本项目走 GitHub Release + 侧载分发，自 0.12.2 起对齐 Android 17（API 37），已高于该门槛；每次上调 `TARGET_SDK` 都要同步 README badge、CI 平台包与回归镜像，并复跑 16 KB 对齐与发版闸门。
 ![Gradle](https://img.shields.io/badge/Gradle-不需要-1f6feb)
 ![Build](https://img.shields.io/badge/build-aapt2%20%2B%20javac%20%2B%20d8%20%2B%20apksigner-8957e5)
 ![Languages](https://img.shields.io/badge/i18n-15%20种语言-f2cc60)
@@ -110,8 +110,8 @@ apksigner sign ──►  onestar-<version>-signed.apk
 | 依赖 | 版本 | 说明 |
 | --- | --- | --- |
 | JDK | 17+ | 只需要其中的 `javac` / `keytool` |
-| Android SDK build-tools | 35.0.0+ | 提供 `aapt2` / `d8` / `apksigner`；34 也能跑通构建，但 16 KB 对齐校验与 targetSdk 36 需要 35.0.0+（本项目另有 `tools/zip16k.py` 兜底） |
-| Android SDK platform | android-35 | 提供 `android.jar` |
+| Android SDK build-tools | 37.0.0+ | 提供 `aapt2` / `d8` / `apksigner`；34 也能跑通构建，但 16 KB 对齐校验与 targetSdk 36 需要 35.0.0+（本项目另有 `tools/zip16k.py` 兜底） |
+| Android SDK platform | android-37.0 | 提供 `android.jar` |
 | Python | 3.8+ | 仅用于 `tools/zip16k.py` |
 | zig | 0.11+ | 可选，用于编译 `jni/src/*.c`；不提供则跳过原生库 |
 
@@ -363,7 +363,7 @@ python3 tools/verify_apk_signature.py build/onestar-0.12.2-signed.apk
 
 ### 三个最值得先知道的事实
 
-1. **时间表里"已生效"的那一栏才是重点**。总纲把"已生效"与"待生效"分开列：Android 已要求 target API 36（Wear OS / AAOS 35、TV / XR 34）与 16 KB 页面对齐；Apple 已要求 iOS 26 SDK 且 macOS 27 起仅支持 Apple Silicon；Windows 10 已全面 EOL（消费者 ESU 于 2026-10-13 结束，商业 ESU 最长可至 2028-01）。不满足这些，包不是"体验差"，是**提交不进去**。（本项目当前构建 `targetSdk 35` 并走 GitHub Release 侧载分发，所以能继续发；一旦上架 Play，必须先升 36——同一事实见 §5 与顶部 badge 注。）
+1. **时间表里"已生效"的那一栏才是重点**。总纲把"已生效"与"待生效"分开列：Android 已要求 target API 36（Wear OS / AAOS 35、TV / XR 34）与 16 KB 页面对齐；Apple 已要求 iOS 26 SDK 且 macOS 27 起仅支持 Apple Silicon；Windows 10 已全面 EOL（消费者 ESU 于 2026-10-13 结束，商业 ESU 最长可至 2028-01）。不满足这些，包不是"体验差"，是**提交不进去**。（本项目自 0.12.2 起构建 `targetSdk 37` 并走 GitHub Release 侧载分发，已覆盖 Play 的 36 门槛——同一事实见 §5 与顶部 badge 注。）
 2. **EV 证书不再绕过 SmartScreen**。Windows 侧唯一零警告路径是 Microsoft Store；非 Store 分发必须接受数周、数百次安装的信誉积累期。买 EV 只为消警告，钱是白花的。
 3. **六个平台的隐私审核本质是同一条链条**：权限声明 → SDK 实际行为 → 网络请求 → 商店隐私表单 → 隐私政策。五套表单应当从同一份数据流图派生；反过来做，必然出现"声明与实际不一致"的高频拒审。
 
