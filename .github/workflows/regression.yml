@@ -151,12 +151,18 @@ jobs:
       - name: Run regression on emulator
         uses: reactivecircus/android-emulator-runner@v2
         with:
-          api-level: 35
+          # API 35 + emulator 37.x + swiftshader 在 GitHub runner 上装包后容易静默崩掉
+          # （run 43247695146：基线包装成功后模拟器进程消失，adb 从此持续 offline）。
+          # App minSdk 21，降到 API 30 镜像回归：无 16KB 页内核，内存/图形都更轻，稳定性优先。
+          api-level: 30
           target: default
           arch: x86_64
-          profile: pixel_6
+          profile: pixel_5
+          cores: 2
+          ram-size: 3072
           disable-animations: true
-          emulator-options: -no-snapshot-save -no-boot-anim -gpu swiftshader_indirect -noaudio -no-window -camera-back none -camera-front none
+          emulator-boot-timeout: 600
+          emulator-options: -no-snapshot -no-boot-anim -no-window -noaudio -camera-back none -camera-front none -gpu swiftshader -memory 3072 -partition-size 4096
           script: bash tools/ci/regression.sh
 
       - name: Upload regression evidence

@@ -49,6 +49,50 @@ adb_() { timeout "$ADB_TO" adb "$@"; }
 # 输出二进制（screencap）用：超时后仍可能留半个文件，调用方需校验大小
 shot_ok() { [ -s "$1" ]; }
 
+# ---------- 设备健康检查 ----------
+# 2026-11-12 run 43247695146：模拟器进程在装包后静默死亡，adb 从此持续 offline，
+# 后续 9 项检查全部误报为 App 缺陷。这里把"模拟器没了"单独识别成环境故障并立即中止，
+# 避免用环境噪音冒充回归结论。
+dev_state() { timeout 20 adb get-state 2>/dev/null | tr -d '\r'; }
+
+ensure_dev() {
+  [ "$(dev_state)" = "device" ] && return 0
+  echo "  [warn] 设备连接异常（state=$(dev_state)），尝试恢复"
+  timeout 30 adb reconnect offline >/dev/null 2>&1 || true
+  timeout 30 adb reconnect >/dev/null 2>&1 || true
+  local i=0
+  while [ $i -lt 3 ]; do
+    i=$((i + 1)); sleep 3
+    [ "$(dev_state)" = "device" ] && { echo "  [ok]   设备连接已恢复"; return 0; }
+  done
+  timeout 60 adb kill-server >/dev/null 2>&1 || true
+  timeout 60 adb start-server >/dev/null 2>&1 || true
+  i=0
+  while [ $i -lt 20 ]; do
+    i=$((i + 1)); sleep 3
+    [ "$(dev_state)" = "device" ] && { echo "  [ok]   adb server 重启后设备恢复"; return 0; }
+  done
+  return 1
+}
+
+# 环境故障：中止本轮回归，结论作废，退出码 3（与 App 缺陷的 exit 1 区分）
+env_die() {
+  {
+    echo "$*"
+    echo "adb devices -l:"
+    timeout 20 adb devices -l 2>&1 || true
+  } > "$OUT/env-failure.txt" 2>&1
+  echo "  [ENV]  $*（见 env-failure.txt）"
+  echo "::error::$*"
+  echo
+  echo "模拟器/环境故障，本轮回归结论作废：不计入 App 缺陷，请重跑 job。"
+  echo "ENV_FAIL=1" > "$OUT/.env-fail"
+  exit 3
+}
+
+# 每个阶段开始前调用：设备还在就继续，没了就直接中止
+need_dev() { ensure_dev || env_die "模拟器失联（$1 阶段无法继续）"; }
+
 
 wait_boot() {
   timeout 300 adb wait-for-device
@@ -75,7 +119,10 @@ screen_size() {
 
 shot() {
   timeout 60 adb exec-out screencap -p > "$OUT/$1.png" 2>/dev/null
-  shot_ok "$OUT/$1.png" || warn "截图失败：$1（后续视觉证据缺失）"
+  if ! shot_ok "$OUT/$1.png"; then
+    rm -f "$OUT/$1.png"   # 0 字节截图不留在证据包里，避免被误当"有图可查"
+    warn "截图失败：$1（后续视觉证据缺失）"
+  fi
 }
 
 dump_ui() {
@@ -101,9 +148,16 @@ foreground() {
 
 crash_check() {
   local tag="$1" out
-  out="$(adb_ logcat -d -b crash 2>/dev/null | tr -d '\r' | grep -F "$PKG" || true)"
-  if [ -n "$out" ]; then
-    printf '%s\n' "$out" | tail -30 > "$OUT/crash-$tag.log"
+  if ! out="$(adb_ logcat -d -b crash 2>&1 | tr -d '\r')"; then
+    warn "取不到 crash 日志缓冲（$tag），本项无法判定"
+    return 0
+  fi
+  if printf '%s' "$out" | grep -q "device offline\|error:"; then
+    warn "crash 日志读取异常（$tag）：$(printf '%s' "$out" | head -1)"
+    return 0
+  fi
+  if printf '%s' "$out" | grep -qF "$PKG"; then
+    printf '%s\n' "$out" | grep -F "$PKG" | tail -30 > "$OUT/crash-$tag.log"
     bad "crash 日志命中 $PKG（见 crash-$tag.log）"
   else
     ok "无 crash 日志（$tag）"
@@ -129,6 +183,7 @@ check_bounds() {
 # ---------- 0. 设备信息 ----------
 
 log "0/6 设备与包信息"
+need_dev "0/6 设备与包信息"
 adb_ shell getprop ro.build.version.sdk | tr -d '\r' | sed 's/^/  API: /'
 echo "  屏幕: $(screen_size)"
 echo "  基线包: $([ -s "$BASE_APK" ] && echo "有 ($(stat -c %s "$BASE_APK") bytes)" || echo "无")"
@@ -139,6 +194,7 @@ echo "  基线内 ABI: $([ -s "$BASE_APK" ] && unzip -l "$BASE_APK" 2>/dev/null 
 # ---------- 1. 覆盖安装 ----------
 
 log "1/6 覆盖安装（基线 → 新版）"
+need_dev "1/6 覆盖安装"
 adb_ uninstall "$PKG" >/dev/null 2>&1 || true
 COVER_TESTED=0
 
@@ -200,6 +256,7 @@ echo "  当前 versionCode: ${NEW_VC:-未知}（manifest: ${EXPECT_VC:-未知}�
 # ---------- 2. 冷启动与首屏 ----------
 
 log "2/6 冷启动与首屏"
+need_dev "2/6 冷启动"
 adb_ logcat -c >/dev/null 2>&1 || true
 launch
 alive && ok "进程存活" || bad "冷启动后进程不存在（闪退）"
@@ -211,6 +268,7 @@ crash_check "cold"
 # ---------- 3. 字号三档 ----------
 
 log "3/6 系统字号三档"
+need_dev "3/6 字号"
 for s in $SCALES; do
   adb_ shell settings put system font_scale "$s" >/dev/null 2>&1 || true
   sleep 1
@@ -225,6 +283,7 @@ adb_ shell settings put system font_scale 1.0 >/dev/null 2>&1 || true
 # ---------- 4. 方向切换 ----------
 
 log "4/6 方向切换"
+need_dev "4/6 方向"
 adb_ shell settings put system accelerometer_rotation 0 >/dev/null 2>&1 || true
 for r in 1 0; do
   adb_ shell settings put system user_rotation "$r" >/dev/null 2>&1 || true
@@ -237,6 +296,7 @@ warn "manifest 仍锁 screenOrientation=portrait：横屏下 App 保持竖屏（
 # ---------- 5. 多语言抽检 ----------
 
 log "5/6 多语言抽检（$LANGS）"
+need_dev "5/6 多语言"
 LOCALE_CMD_OK=1
 adb_ shell cmd locale help >/dev/null 2>&1 || LOCALE_CMD_OK=0
 if [ "$LOCALE_CMD_OK" = "0" ]; then
@@ -260,6 +320,7 @@ fi
 # ---------- 6. 无障碍语义抽查 ----------
 
 log "6/6 无障碍语义抽查"
+need_dev "6/6 无障碍"
 adb_ shell cmd locale set-app-locales "$PKG" --locales zh-Hans >/dev/null 2>&1 || true
 launch
 if dump_ui "a11y-zh"; then
