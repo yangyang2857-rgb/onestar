@@ -59,6 +59,8 @@ Android 会判定为降级、拒绝覆盖安装。所以这里把两套编号彻
 - 新增 `tools/ci/check_bounds.py`：解析 `uiautomator dump` 的节点矩形，检查是否越出屏幕；只覆盖系统控件层，Canvas 自绘层仍需看截图
 - 回归替代范围写进 `docs/发版规范.md` §3：覆盖安装、朝向、字号、语言、崩溃与控件越界由 CI 判，视觉观感/刘海遮挡/TalkBack 播报/厂商字体差异仍须人看，不得因 CI 绿填 ✅
 - README 重写扩充：功能一览、AGP 职责对照、安装与覆盖升级、数据与隐私、FAQ、Roadmap、文档索引
+- 多语言抽检从模拟器层挪到单测层：API 30 镜像没有 `cmd locale set-app-locales`（该命令 API 33 才引入），原来的设备层语言抽检只能跳过并记一条 warning，等于每次回归都带一个不会消失的噪音。改为分工——文案表由 `test/I18nTableTest` 全量判（15 语言 × 全行非空、占位符对齐、语言判定、非中日语言漏汉字、RTL 标志），跨类调用点漏翻由 `I18nTest` 判，两者随 build job 每次提交都跑；设备层只保留「切语言后能否启动、布局是否越界」，且在镜像支持 `cmd locale` 时才做，不支持时输出 `[note]` 说明归属而不发警告
+- `docs/发版规范.md` 补「多语言与 RTL 的三层分工」表，并写明 `supportsRtl=false` 是有意设计：主视觉为 Canvas 自绘，系统级 RTL 镜像会连坐标一起翻转，阿拉伯语/维吾尔语文本方向由 `I18n.visual()` 走 `java.text.Bidi.reorderVisually` 手动处理
 
 ### 1.0.0 — 计划
 

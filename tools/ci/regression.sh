@@ -24,6 +24,7 @@ mkdir -p "$OUT"
 
 log()  { printf '\n\033[1m=== %s ===\033[0m\n' "$*"; }
 ok()   { printf '  [ok]   %s\n' "$*"; }
+note() { printf '  [note] %s\n' "$*"; }
 warn() { printf '  [warn] %s\n' "$*"; echo "::warning::$*"; WARN_N=$((WARN_N + 1)); }
 bad()  { printf '  [FAIL] %s\n' "$*"; echo "::error::$*"; FAIL_N=$((FAIL_N + 1)); }
 # 取 APK 签名证书 SHA-256（优先 apksigner；不可用时回退仓库验签脚本）
@@ -295,12 +296,20 @@ warn "manifest 仍锁 screenOrientation=portrait：横屏下 App 保持竖屏（
 
 # ---------- 5. 多语言抽检 ----------
 
-log "5/6 多语言抽检（$LANGS）"
+log "5/6 多语言与 RTL（设备能切 locale 就抽检，否则由单测层承担）"
 need_dev "5/6 多语言"
+# 分工：文案表本身、语言判定、RTL 标志、漏汉字，全部由纯 JVM 单测覆盖
+# （test/I18nTableTest：15 语言 × 全部行非空 / 占位符对齐 / 漏汉字 / RTL；
+#   test/com/onestar/.../I18nTest：跨类调用点漏翻），这些不需要设备。
+# 设备层只补单测抓不到的部分：切了语言之后能不能启动、布局会不会越界。
+# cmd locale set-app-locales 是 API 33+ 才有的命令，API 30 镜像没有，
+# 按能力探测处理，不让「命令不存在」冒充成一条回归警告。
 LOCALE_CMD_OK=1
 adb_ shell cmd locale help >/dev/null 2>&1 || LOCALE_CMD_OK=0
 if [ "$LOCALE_CMD_OK" = "0" ]; then
-  warn "设备不支持 cmd locale set-app-locales，跳过语言抽检"
+  note "本镜像无 cmd locale set-app-locales（API 33+ 才提供），设备层不做 locale 切换"
+  note "语言/RTL 覆盖由单测层保证：test/I18nTableTest（15 语言·全行非空·占位符对齐·漏汉字·RTL）+ I18nTest（跨类漏翻），已由 build job 的 Unit tests 执行"
+  note "注：manifest supportsRtl=false 是有意设计——界面为 Canvas 自绘，RTL 走 I18n.visual() 手动 bidi，不依赖系统布局镜像"
 else
   for lang in $LANGS; do
     adb_ shell cmd locale set-app-locales "$PKG" --locales "$lang" >/dev/null 2>&1 \
