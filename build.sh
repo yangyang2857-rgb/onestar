@@ -163,18 +163,7 @@ else
   log "跳过原生库（未提供 ZIG）。Java 侧 NativeCore 会走纯 Java 回退路径。"
 fi
 
-# ---------- 8. 16 KB 页对齐重打包 ----------
-log "16 KB 页对齐重打包"
-# 优先用 build-tools 官方 zipalign（-P 16 指定 16 KB 页）；它产出的对齐 extra 是 apksigner 认得的格式，
-# 签名后偏移不会被改。老版本 build-tools 没有 -P 时才退回自研 zip16k.py。
-if "$BT/zipalign" 2>&1 | grep -q "pagesize_kb"; then
-  "$BT/zipalign" -P 16 -f 4 "$WORK/unsigned.apk" "$WORK/aligned.apk"
-  log "zipalign -P 16 完成"
-else
-  python3 tools/zip16k.py "$WORK/unsigned.apk" "$WORK/aligned.apk"
-fi
-
-# ---------- 9. 签名 ----------
+# ---------- 8. 准备签名证书 ----------
 # ONESTAR_KS_B64：把 keystore 以 base64 内联进环境变量，供 CI 从 Secret 注入。
 # 这样每次构建用的都是同一张证书，已装用户才能覆盖升级（见 docs/签名与覆盖升级.md）。
 if [ -n "${ONESTAR_KS_B64:-}" ] && [ -z "${ONESTAR_KS:-}" ]; then
@@ -209,22 +198,40 @@ else
 fi
 
 APK="$OUT/onestar-$VN-signed.apk"
-# 签名方案显式锁定，不依赖 build-tools 的默认值：
-#   v1(JAR) + v2(APK Signature Scheme v2) 必须开 —— 与 README §5.3 的声明一致，
-#   且 minSdk 21 的机器只能靠 v1 校验。
-#   v3/v4 显式关闭 —— 升 build-tools / targetSdk 后默认值可能变化（v4 还会额外产出 .idsig），
-#   证书与分发方式（GitHub Release + 侧载）没变之前不要引入。
-# 注意：apksigner 的 v1(JAR) 步骤会重写 zip，条目偏移可能被改。对齐必须用 apksigner 认得
-# 的 zipalign extra（上面的 -P 16），签名后再复核偏移；否则 extractNativeLibs=false 的包
-# 在 API 34+ 上会 INSTALL_FAILED_INVALID_APK: Failed to extract native libraries。
+# 签名分两步，顺序不能换：
+#   v1(JAR) 签名必然重写 zip（新增 META-INF/*.SF、*.RSA），会把签名前做的对齐全部打乱；
+#   所以流程固定为「先 v1 签 → 再 16 KB 对齐 → 最后只追加 v2」，最终产物偏移才稳定。
+#   v1 必须开：minSdk 21 的机器只能靠 v1 校验（与 README §5.3 声明一致）。
+#   v3/v4 显式关闭：升 build-tools / targetSdk 后默认值可能变（v4 还会产出 .idsig），暂不引入。
 "$BT/apksigner" sign \
   --ks "$KS" --ks-pass "pass:$KS_PASS" --key-pass "pass:$KS_PASS" \
   --ks-key-alias "$KS_ALIAS" --min-sdk-version "$MIN_SDK" \
-  --v1-signing-enabled true --v2-signing-enabled true \
+  --v1-signing-enabled true --v2-signing-enabled false \
+  --v3-signing-enabled false --v4-signing-enabled false \
+  --out "$WORK/v1-signed.apk" "$WORK/unsigned.apk"
+
+# ---------- 9. 16 KB 页对齐（必须在 v1 签名之后） ----------
+log "16 KB 页对齐（v1 签名后）"
+# 优先用 build-tools 官方 zipalign（-P 16 = 16 KB 页，其对齐 extra 是 apksigner 认得的格式）；
+# 直接试跑判断支持性，不靠 help 文案匹配。老版本 build-tools 无 -P 时退回自研 zip16k.py。
+if "$BT/zipalign" -P 16 -f 4 "$WORK/v1-signed.apk" "$WORK/aligned.apk" >/dev/null 2>&1; then
+  log "zipalign -P 16 完成"
+else
+  log "zipalign 不支持 -P 16 或不可执行，退回自研 zip16k.py"
+  python3 tools/zip16k.py "$WORK/v1-signed.apk" "$WORK/aligned.apk"
+fi
+
+# ---------- 10. 追加 v2 签名并复核 ----------
+# v2 只往 APK Signing Block 写签名数据，不重写已有条目，因此上面的对齐会被保留。
+"$BT/apksigner" sign \
+  --ks "$KS" --ks-pass "pass:$KS_PASS" --key-pass "pass:$KS_PASS" \
+  --ks-key-alias "$KS_ALIAS" --min-sdk-version "$MIN_SDK" \
+  --v1-signing-enabled false --v2-signing-enabled true \
   --v3-signing-enabled false --v4-signing-enabled false \
   --out "$APK" "$WORK/aligned.apk"
-"$BT/apksigner" verify "$APK"
-# 签名后复核：apksigner 的 v1 步骤会重写 zip，若偏移被改，API 34+ 会装不上（extractNativeLibs=false）
+"$BT/apksigner" verify --verbose "$APK" | grep -E "Verified using" || true
+# extractNativeLibs="false" 时安装器直接 mmap APK 内的 .so，偏移非 16384 倍数会
+# INSTALL_FAILED_INVALID_APK: Failed to extract native libraries。
 python3 tools/ci/check_align.py "$APK" || {
   echo "::error::签名后 .so 未按 16 KB 对齐（API 34+ 会装不上）"
   exit 1
