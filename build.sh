@@ -197,41 +197,48 @@ else
   fi
 fi
 
-APK="$OUT/onestar-$VN-signed.apk"
-# 签名分两步，顺序不能换：
-#   v1(JAR) 签名必然重写 zip（新增 META-INF/*.SF、*.RSA），会把签名前做的对齐全部打乱；
-#   所以流程固定为「先 v1 签 → 再 16 KB 对齐 → 最后只追加 v2」，最终产物偏移才稳定。
-#   v1 必须开：minSdk 21 的机器只能靠 v1 校验（与 README §5.3 声明一致）。
-#   v3/v4 显式关闭：升 build-tools / targetSdk 后默认值可能变（v4 还会产出 .idsig），暂不引入。
-"$BT/apksigner" sign \
-  --ks "$KS" --ks-pass "pass:$KS_PASS" --key-pass "pass:$KS_PASS" \
-  --ks-key-alias "$KS_ALIAS" --min-sdk-version "$MIN_SDK" \
-  --v1-signing-enabled true --v2-signing-enabled false \
-  --v3-signing-enabled false --v4-signing-enabled false \
-  --out "$WORK/v1-signed.apk" "$WORK/unsigned.apk"
-
-# ---------- 9. 16 KB 页对齐（必须在 v1 签名之后） ----------
-log "16 KB 页对齐（v1 签名后）"
-# 优先用 build-tools 官方 zipalign（-P 16 = 16 KB 页，其对齐 extra 是 apksigner 认得的格式）；
-# 直接试跑判断支持性，不靠 help 文案匹配。老版本 build-tools 无 -P 时退回自研 zip16k.py。
-if "$BT/zipalign" -P 16 -f 4 "$WORK/v1-signed.apk" "$WORK/aligned.apk" >/dev/null 2>&1; then
+# ---------- 9. 16 KB 页对齐（必须在签名前） ----------
+log "16 KB 页对齐（签名前）"
+# 必须用官方 zipalign 的 -P 16：它写入的对齐 extra 是 apksigner 认得的格式，签名时会被保留；
+# 自研 zip16k.py 写的普通 padding 不被 apksigner 认，v1(JAR) 重写 zip 后偏移就散了（历史坑）。
+# 这里直接试跑判断支持性，不靠 help 文案 grep（build-tools 35 的 help 文案曾导致探测失效）。
+if "$BT/zipalign" -P 16 -f 4 "$WORK/unsigned.apk" "$WORK/aligned.apk" >/dev/null 2>&1; then
   log "zipalign -P 16 完成"
 else
-  log "zipalign 不支持 -P 16 或不可执行，退回自研 zip16k.py"
-  python3 tools/zip16k.py "$WORK/v1-signed.apk" "$WORK/aligned.apk"
+  log "zipalign 不支持 -P 16 或不可执行，退回自研 zip16k.py（签名后可能失配，靠下面的强校验兜底）"
+  python3 tools/zip16k.py "$WORK/unsigned.apk" "$WORK/aligned.apk"
 fi
 
-# ---------- 10. 追加 v2 签名并复核 ----------
-# v2 只往 APK Signing Block 写签名数据，不重写已有条目，因此上面的对齐会被保留。
+# ---------- 10. v1 + v2 一次签名并强校验 ----------
+APK="$OUT/onestar-$VN-signed.apk"
+# 签名方案显式锁定，不依赖 build-tools 默认值：
+#   v1(JAR) + v2 必须同时开 —— minSdk 21 的机器只能靠 v1 校验（与 README §5.3 声明一致）。
+#   注意不要在已签名的包上再跑一次 --v1-signing-enabled false：apksigner 会把已有 META-INF
+#   签名剥离，产物变成 v2-only，minSdk 21 直接装不上（历史坑）。
+#   v3/v4 显式关闭 —— 升 build-tools / targetSdk 后默认值会变（v4 还会产出 .idsig）。
 "$BT/apksigner" sign \
   --ks "$KS" --ks-pass "pass:$KS_PASS" --key-pass "pass:$KS_PASS" \
   --ks-key-alias "$KS_ALIAS" --min-sdk-version "$MIN_SDK" \
-  --v1-signing-enabled false --v2-signing-enabled true \
+  --v1-signing-enabled true --v2-signing-enabled true \
   --v3-signing-enabled false --v4-signing-enabled false \
   --out "$APK" "$WORK/aligned.apk"
-"$BT/apksigner" verify --verbose "$APK" | grep -E "Verified using" || true
-# extractNativeLibs="false" 时安装器直接 mmap APK 内的 .so，偏移非 16384 倍数会
-# INSTALL_FAILED_INVALID_APK: Failed to extract native libraries。
+
+# 校验一：apksigner 自己的校验必须通过（不加管道，退出码要能中断构建）
+"$BT/apksigner" verify --verbose "$APK"
+
+# 校验二：v1 签名文件必须真的在包里（防上面那次“v2-only 剥离 v1”的回归）
+python3 - "$APK" <<'PY'
+import sys, zipfile
+names = set(zipfile.ZipFile(sys.argv[1]).namelist())
+need = ["META-INF/MANIFEST.MF"]
+has_sig = [n for n in names if n.startswith("META-INF/") and n.endswith((".SF", ".RSA", ".DSA", ".EC"))]
+if not all(n in names for n in need) or not has_sig:
+    print("  v1 签名缺失：META-INF 里没有 MANIFEST.MF / *.SF|*.RSA")
+    sys.exit(1)
+print("  v1 签名文件就位：%s" % ", ".join(sorted(has_sig)[:3]))
+PY
+
+# 校验三：.so 必须 STORED 且数据偏移按 16 KB 对齐（extractNativeLibs=false 的硬要求）
 python3 tools/ci/check_align.py "$APK" || {
   echo "::error::签名后 .so 未按 16 KB 对齐（API 34+ 会装不上）"
   exit 1
