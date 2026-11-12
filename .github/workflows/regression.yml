@@ -39,7 +39,7 @@ jobs:
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
         with:
-          packages: 'platforms;android-35 build-tools;35.0.0 platform-tools'
+          packages: 'platforms;android-37.0 build-tools;37.0.0 platform-tools'
 
       - name: Install zig (用于交叉编译 jni)
         run: |
@@ -75,7 +75,7 @@ jobs:
       - name: Build APK (x86_64，仅供模拟器回归；发布包仍为 arm64)
         env:
           ANDROID_HOME: ${{ env.ANDROID_SDK_ROOT }}
-          BUILD_TOOLS: '35.0.0'
+          BUILD_TOOLS: '37.0.0'
           ABIS: x86_64
         run: bash ./build.sh
 
@@ -87,7 +87,7 @@ jobs:
         continue-on-error: true
         env:
           ANDROID_HOME: ${{ env.ANDROID_SDK_ROOT }}
-          BUILD_TOOLS: '35.0.0'
+          BUILD_TOOLS: '37.0.0'
           ABIS: x86_64
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |

@@ -55,7 +55,8 @@ public class MainActivity extends Activity implements StarFieldView.Host,
         installInsetListener();
         installBackCallback();
         requestAdaptiveFrameRate();
-        setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
+        // API 37 起大屏（sw >= 600dp）会忽略方向锁定，这里主动让路，避免出现点不动的死键。
+        if (lockOrientationAllowed()) setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
 
         try {
             sensorMgr = (android.hardware.SensorManager) getSystemService(SENSOR_SERVICE);
@@ -247,7 +248,7 @@ public class MainActivity extends Activity implements StarFieldView.Host,
     private void onPredictiveBack() {
         if (view != null && view.closeCalendar()) return;
         if (view != null && view.closePanels()) return;
-        if (isLandscapeNow()) {
+        if (isLandscapeNow() && lockOrientationAllowed()) {
             setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
             return;
         }
@@ -259,7 +260,7 @@ public class MainActivity extends Activity implements StarFieldView.Host,
         // 老系统（< 33）走这里；新系统由 OnBackInvokedCallback 接管
         if (view != null && view.closeCalendar()) return;
         if (view != null && view.closePanels()) return;
-        if (isLandscapeNow()) {
+        if (isLandscapeNow() && lockOrientationAllowed()) {
             setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
             return;
         }
@@ -312,8 +313,14 @@ public class MainActivity extends Activity implements StarFieldView.Host,
         return getResources().getConfiguration().orientation == Configuration.ORIENTATION_LANDSCAPE;
     }
 
+    /** target 37 起 sw >= 600dp 的设备忽略方向锁定；这类设备上不再硬锁横竖屏。 */
+    private boolean lockOrientationAllowed() {
+        return getResources().getConfiguration().smallestScreenWidthDp < 600;
+    }
+
     @Override
     public void toggleOrientation() {
+        if (!lockOrientationAllowed()) return; // 大屏由系统自由窗口接管，锁方向无效
         if (isLandscapeNow()) {
             setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
         } else {

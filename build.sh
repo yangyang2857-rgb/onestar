@@ -25,7 +25,7 @@ cd "$(dirname "$0")"
 ROOT="$(pwd)"
 
 MIN_SDK="${MIN_SDK:-21}"
-TARGET_SDK="${TARGET_SDK:-35}"
+TARGET_SDK="${TARGET_SDK:-37}"
 ABI="${ABIS:-arm64-v8a}"
 
 log() { printf '\033[36m== %s\033[0m\n' "$*"; }
