@@ -42,57 +42,73 @@ echo "待测 APK: $APK ($(stat -c %s "$APK") bytes)"
 
 # ---------- 基础工具 ----------
 
+# 所有 adb_ 调用都必须带超时：模拟器偶发 device offline 时 adb_ shell/exec-out 会永久阻塞，
+# 之前就因此把整个 regression job 拖到 45min 超时（真实故障点被掩盖）。
+ADB_TO="${ADB_TO:-60}"
+adb_() { timeout "$ADB_TO" adb "$@"; }
+# 输出二进制（screencap）用：超时后仍可能留半个文件，调用方需校验大小
+shot_ok() { [ -s "$1" ]; }
+
+
 wait_boot() {
-  adb wait-for-device
+  timeout 300 adb wait-for-device
   local i=0
-  until [ "$(adb shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')" = "1" ]; do
+  until [ "$(adb_ shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')" = "1" ]; do
     i=$((i + 1)); [ $i -gt 120 ] && { echo "::error::模拟器 240s 未启动完成"; exit 1; }
     sleep 2
   done
   sleep 3
-  adb shell input keyevent 82 >/dev/null 2>&1 || true   # 解锁
-  adb shell settings put global window_animation_scale 0 >/dev/null 2>&1 || true
-  adb shell settings put global transition_animation_scale 0 >/dev/null 2>&1 || true
-  adb shell settings put global animator_duration_scale 0 >/dev/null 2>&1 || true
+  adb_ shell input keyevent 82 >/dev/null 2>&1 || true   # 解锁
+  adb_ shell settings put global window_animation_scale 0 >/dev/null 2>&1 || true
+  adb_ shell settings put global transition_animation_scale 0 >/dev/null 2>&1 || true
+  adb_ shell settings put global animator_duration_scale 0 >/dev/null 2>&1 || true
 }
 
 screen_size() {
-  adb shell wm size 2>/dev/null | tr -d '\r' | awk -F': *' '/Physical size/ {print $2; exit}'
+  local i=0 out
+  while [ $i -lt 3 ]; do
+    out="$(adb_ shell wm size 2>/dev/null | tr -d '\r' | awk -F': *' '/Physical size/ {print $2; exit}')"
+    [ -n "$out" ] && { printf '%s' "$out"; return 0; }
+    i=$((i + 1)); sleep 1
+  done
 }
 
-shot() { adb exec-out screencap -p > "$OUT/$1.png" 2>/dev/null; }
+shot() {
+  timeout 60 adb exec-out screencap -p > "$OUT/$1.png" 2>/dev/null
+  shot_ok "$OUT/$1.png" || warn "截图失败：$1（后续视觉证据缺失）"
+}
 
 dump_ui() {
-  adb shell rm -f /sdcard/window.xml >/dev/null 2>&1 || true
-  adb shell uiautomator dump /sdcard/window.xml >/dev/null 2>&1 || true
-  adb pull /sdcard/window.xml "$OUT/$1.xml" >/dev/null 2>&1 || true
+  adb_ shell rm -f /sdcard/window.xml >/dev/null 2>&1 || true
+  adb_ shell uiautomator dump /sdcard/window.xml >/dev/null 2>&1 || true
+  adb_ pull /sdcard/window.xml "$OUT/$1.xml" >/dev/null 2>&1 || true
   [ -s "$OUT/$1.xml" ] || return 1
   return 0
 }
 
 launch() {
-  adb shell am force-stop "$PKG" >/dev/null 2>&1 || true
-  adb shell monkey -p "$PKG" -c android.intent.category.LAUNCHER 1 >/dev/null 2>&1 || true
+  adb_ shell am force-stop "$PKG" >/dev/null 2>&1 || true
+  adb_ shell monkey -p "$PKG" -c android.intent.category.LAUNCHER 1 >/dev/null 2>&1 || true
   sleep 5
 }
 
-alive() { [ -n "$(adb shell pidof "$PKG" 2>/dev/null | tr -d '\r')" ]; }
+alive() { [ -n "$(adb_ shell pidof "$PKG" 2>/dev/null | tr -d '\r')" ]; }
 
 foreground() {
-  adb shell dumpsys activity activities 2>/dev/null | tr -d '\r' \
+  adb_ shell dumpsys activity activities 2>/dev/null | tr -d '\r' \
     | grep -E "mResumedActivity|topResumedActivity" | grep -q "$PKG"
 }
 
 crash_check() {
   local tag="$1" out
-  out="$(adb logcat -d -b crash 2>/dev/null | tr -d '\r' | grep -F "$PKG" || true)"
+  out="$(adb_ logcat -d -b crash 2>/dev/null | tr -d '\r' | grep -F "$PKG" || true)"
   if [ -n "$out" ]; then
     printf '%s\n' "$out" | tail -30 > "$OUT/crash-$tag.log"
     bad "crash 日志命中 $PKG（见 crash-$tag.log）"
   else
     ok "无 crash 日志（$tag）"
   fi
-  adb logcat -c >/dev/null 2>&1 || true
+  adb_ logcat -c >/dev/null 2>&1 || true
 }
 
 # 节点越界检查：自绘 Canvas 的文字不在 view 树里，此项主要覆盖系统/Android 控件层
@@ -113,17 +129,17 @@ check_bounds() {
 # ---------- 0. 设备信息 ----------
 
 log "0/6 设备与包信息"
-adb shell getprop ro.build.version.sdk | tr -d '\r' | sed 's/^/  API: /'
+adb_ shell getprop ro.build.version.sdk | tr -d '\r' | sed 's/^/  API: /'
 echo "  屏幕: $(screen_size)"
 echo "  基线包: $([ -s "$BASE_APK" ] && echo "有 ($(stat -c %s "$BASE_APK") bytes)" || echo "无")"
-echo "  设备 ABI: $(adb shell getprop ro.product.cpu.abilist 2>/dev/null | tr -d '\r')"
+echo "  设备 ABI: $(adb_ shell getprop ro.product.cpu.abilist 2>/dev/null | tr -d '\r')"
 echo "  包内 ABI: $(unzip -l "$APK" 2>/dev/null | awk '/lib\//{split($4,a,"/"); print a[2]}' | sort -u | tr '\n' ' ')"
 echo "  基线内 ABI: $([ -s "$BASE_APK" ] && unzip -l "$BASE_APK" 2>/dev/null | awk '/lib\//{split($4,a,"/"); print a[2]}' | sort -u | tr '\n' ' ' || echo 无)"
 
 # ---------- 1. 覆盖安装 ----------
 
 log "1/6 覆盖安装（基线 → 新版）"
-adb uninstall "$PKG" >/dev/null 2>&1 || true
+adb_ uninstall "$PKG" >/dev/null 2>&1 || true
 COVER_TESTED=0
 
 if [ -s "$BASE_APK" ]; then
@@ -143,14 +159,14 @@ if [ -s "$BASE_APK" ]; then
   fi
 
   if [ "$BASE_OK" = "1" ]; then
-    if adb install -r -d "$BASE_APK" > "$OUT/install-base.log" 2>&1 && grep -q Success "$OUT/install-base.log"; then
+    if adb_ install -r -d "$BASE_APK" > "$OUT/install-base.log" 2>&1 && grep -q Success "$OUT/install-base.log"; then
       ok "基线包安装成功"
-      BASE_VC="$(adb shell dumpsys package "$PKG" 2>/dev/null | tr -d '\r' | awk -F= '/versionCode=/ {print $2; exit}' | awk '{print $1}')"
+      BASE_VC="$(adb_ shell dumpsys package "$PKG" 2>/dev/null | tr -d '\r' | awk -F= '/versionCode=/ {print $2; exit}' | awk '{print $1}')"
       echo "  基线 versionCode: ${BASE_VC:-未知}"
       launch
       alive && ok "基线包可启动" || bad "基线包装上了但起不来（环境问题，后续结论不可信）"
       shot "00-base-launched"
-      if adb install -r "$APK" > "$OUT/install-overwrite.log" 2>&1 && grep -q Success "$OUT/install-overwrite.log"; then
+      if adb_ install -r "$APK" > "$OUT/install-overwrite.log" 2>&1 && grep -q Success "$OUT/install-overwrite.log"; then
         ok "覆盖安装成功（未卸载、未丢数据目录）"
         COVER_TESTED=1
       else
@@ -166,8 +182,8 @@ fi
 
 if [ "$COVER_TESTED" = "0" ]; then
   warn "未完成覆盖安装验证：改用卸载后干净安装，只测新版本身"
-  adb uninstall "$PKG" >/dev/null 2>&1 || true
-  if adb install -r "$APK" > "$OUT/install-clean.log" 2>&1 && grep -q Success "$OUT/install-clean.log"; then
+  adb_ uninstall "$PKG" >/dev/null 2>&1 || true
+  if adb_ install -r "$APK" > "$OUT/install-clean.log" 2>&1 && grep -q Success "$OUT/install-clean.log"; then
     ok "干净安装成功"
   else
     bad "干净安装失败（见 install-clean.log）"
@@ -175,7 +191,7 @@ if [ "$COVER_TESTED" = "0" ]; then
   fi
 fi
 
-NEW_VC="$(adb shell dumpsys package "$PKG" 2>/dev/null | tr -d '\r' | awk -F= '/versionCode=/ {print $2; exit}' | awk '{print $1}')"
+NEW_VC="$(adb_ shell dumpsys package "$PKG" 2>/dev/null | tr -d '\r' | awk -F= '/versionCode=/ {print $2; exit}' | awk '{print $1}')"
 EXPECT_VC="$(grep -oE 'android:versionCode="[0-9]+"' AndroidManifest.xml 2>/dev/null | head -1 | grep -oE '[0-9]+')"
 echo "  当前 versionCode: ${NEW_VC:-未知}（manifest: ${EXPECT_VC:-未知}）"
 [ -n "$NEW_VC" ] && [ "$NEW_VC" = "$EXPECT_VC" ] && ok "versionCode = $NEW_VC，与 manifest 一致" \
@@ -184,7 +200,7 @@ echo "  当前 versionCode: ${NEW_VC:-未知}（manifest: ${EXPECT_VC:-未知}�
 # ---------- 2. 冷启动与首屏 ----------
 
 log "2/6 冷启动与首屏"
-adb logcat -c >/dev/null 2>&1 || true
+adb_ logcat -c >/dev/null 2>&1 || true
 launch
 alive && ok "进程存活" || bad "冷启动后进程不存在（闪退）"
 foreground && ok "MainActivity 在前台" || warn "未取到前台 Activity（可能是 dumpsys 文案差异）"
@@ -196,7 +212,7 @@ crash_check "cold"
 
 log "3/6 系统字号三档"
 for s in $SCALES; do
-  adb shell settings put system font_scale "$s" >/dev/null 2>&1 || true
+  adb_ shell settings put system font_scale "$s" >/dev/null 2>&1 || true
   sleep 1
   launch
   if alive; then ok "font_scale=$s 启动正常"; else bad "font_scale=$s 启动失败"; fi
@@ -204,14 +220,14 @@ for s in $SCALES; do
   shot "$local_tag"
   check_bounds "$local_tag"
 done
-adb shell settings put system font_scale 1.0 >/dev/null 2>&1 || true
+adb_ shell settings put system font_scale 1.0 >/dev/null 2>&1 || true
 
 # ---------- 4. 方向切换 ----------
 
 log "4/6 方向切换"
-adb shell settings put system accelerometer_rotation 0 >/dev/null 2>&1 || true
+adb_ shell settings put system accelerometer_rotation 0 >/dev/null 2>&1 || true
 for r in 1 0; do
-  adb shell settings put system user_rotation "$r" >/dev/null 2>&1 || true
+  adb_ shell settings put system user_rotation "$r" >/dev/null 2>&1 || true
   sleep 3
   if alive; then ok "user_rotation=$r 时进程存活"; else bad "user_rotation=$r 时进程死亡"; fi
   shot "rotation-$r"
@@ -222,15 +238,15 @@ warn "manifest 仍锁 screenOrientation=portrait：横屏下 App 保持竖屏（
 
 log "5/6 多语言抽检（$LANGS）"
 LOCALE_CMD_OK=1
-adb shell cmd locale help >/dev/null 2>&1 || LOCALE_CMD_OK=0
+adb_ shell cmd locale help >/dev/null 2>&1 || LOCALE_CMD_OK=0
 if [ "$LOCALE_CMD_OK" = "0" ]; then
   warn "设备不支持 cmd locale set-app-locales，跳过语言抽检"
 else
   for lang in $LANGS; do
-    adb shell cmd locale set-app-locales "$PKG" --locales "$lang" >/dev/null 2>&1 \
+    adb_ shell cmd locale set-app-locales "$PKG" --locales "$lang" >/dev/null 2>&1 \
       || { warn "设置 $lang 失败，跳过"; continue; }
     sleep 1
-    adb logcat -c >/dev/null 2>&1 || true
+    adb_ logcat -c >/dev/null 2>&1 || true
     launch
     if alive; then ok "$lang 启动正常"; else bad "$lang 启动闪退"; fi
     tag="lang-$lang"
@@ -238,13 +254,13 @@ else
     check_bounds "$tag"
     crash_check "$tag"
   done
-  adb shell cmd locale set-app-locales "$PKG" --locales "" >/dev/null 2>&1 || true
+  adb_ shell cmd locale set-app-locales "$PKG" --locales "" >/dev/null 2>&1 || true
 fi
 
 # ---------- 6. 无障碍语义抽查 ----------
 
 log "6/6 无障碍语义抽查"
-adb shell cmd locale set-app-locales "$PKG" --locales zh-Hans >/dev/null 2>&1 || true
+adb_ shell cmd locale set-app-locales "$PKG" --locales zh-Hans >/dev/null 2>&1 || true
 launch
 if dump_ui "a11y-zh"; then
   if grep -q "content-desc=\"[^\"]\{2,\}\"" "$OUT/a11y-zh.xml"; then
