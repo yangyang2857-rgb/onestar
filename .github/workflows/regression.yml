@@ -1,6 +1,6 @@
 name: regression
 
-# 模拟器回归：替代人工真机回归中"机器能判"的那部分（见 docs/发版规范.md §3 脚注）。
+# 模拟器回归：替代人工真机回归中"机器能判"的那部分（见 docs/release-spec.md §3 脚注）。
 # 不跑 Gradle，构建复用 build.sh；回归脚本为 tools/ci/regression.sh。
 on:
   workflow_dispatch:

@@ -6,20 +6,20 @@
 
 ```
 docs/
-├── README.md                        ← 本文件：目录索引
-├── 全生态开发与发布总纲.md            ← 唯一入口：跨平台统一口径、时间表、闸门
-├── 发版规范.md                       ← 版本号、CHANGELOG、提交信息、发布度量
-├── 签名与覆盖升级.md                  ← 证书固定、CI Secret 注入、验签与排错
-├── 凭据与令牌管理.md                  ← PAT 类型与权限、传递方式、泄露处置
-├── 拾光OneStar_版本时间轴.md          ← 历代版本与语义化版本号对照
-├── screenshots/                     ← README 与商店素材用截图
-└── ecosystems/                      ← 原子文档：单平台的完整原文（含命令与逐项清单）
-    ├── 安卓全生态开发与发布要点.md
-    ├── Web全生态开发与发布要点.md
-    ├── 鸿蒙全生态开发与发布要点.md
-    ├── 苹果全生态开发与发布要点.md
-    ├── Windows全生态开发与发布要点.md
-    └── Linux全生态开发与发布要点.md
+├── README.md                       ← 本文件：目录索引
+├── cross-platform-release-plan.md  ← 唯一入口：跨平台统一口径、时间表、闸门
+├── release-spec.md                 ← 版本号、CHANGELOG、提交信息、发布度量
+├── signing-and-upgrade.md          ← 证书固定、CI Secret 注入、验签与排错
+├── credentials-and-tokens.md       ← PAT 类型与权限、传递方式、泄露处置
+├── version-timeline.md             ← 历代版本与语义化版本号对照
+├── screenshots/                    ← README 与商店素材用截图
+└── ecosystems/                     ← 原子文档：单平台的完整原文（含命令与逐项清单）
+    ├── android.md
+    ├── web.md
+    ├── harmonyos.md
+    ├── apple.md
+    ├── windows.md
+    └── linux.md
 ```
 
 ## 阅读顺序
@@ -36,12 +36,12 @@ docs/
 | 决定用哪套响应式方案 | 总纲 §5.1 响应式布局矩阵 |
 | 新增第三方 SDK，要判断影响 | 总纲 §5.3 隐私链条 + §7 风险矩阵 |
 | 发版前逐项检查 | 总纲 §6 统一发布闸门 |
-| 不想上真机，想先让 CI 过一遍回归 | [发版规范.md](发版规范.md) §3「兼容与可用性」，脚本在 `tools/ci/regression.sh` |
+| 不想上真机，想先让 CI 过一遍回归 | [release-spec.md](release-spec.md) §3「兼容与可用性」，脚本在 `tools/ci/regression.sh` |
 | 查某个平台的具体签名命令 | `ecosystems/` 对应文件 |
-| 定版本号、写 CHANGELOG、写提交信息 | [发版规范.md](发版规范.md) |
-| 换签名证书、排查覆盖安装失败 | [签名与覆盖升级.md](签名与覆盖升级.md) |
-| 新建访问令牌、判断该开哪些权限、令牌疑似泄露 | [凭据与令牌管理.md](凭据与令牌管理.md) |
-| 查历史版本号与流水号的对应关系 | [拾光OneStar_版本时间轴.md](拾光OneStar_版本时间轴.md) |
+| 定版本号、写 CHANGELOG、写提交信息 | [release-spec.md](release-spec.md) |
+| 换签名证书、排查覆盖安装失败 | [signing-and-upgrade.md](signing-and-upgrade.md) |
+| 新建访问令牌、判断该开哪些权限、令牌疑似泄露 | [credentials-and-tokens.md](credentials-and-tokens.md) |
+| 查历史版本号与流水号的对应关系 | [version-timeline.md](version-timeline.md) |
 | 发现文档与现实不符 | 总纲 §8 核查记录，并按季度复跑四项时效检查 |
 
 ## 维护约定

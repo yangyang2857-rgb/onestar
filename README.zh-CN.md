@@ -21,6 +21,20 @@
 | --- | --- | --- |
 | ![星图](docs/screenshots/star-map.png) | ![星语](docs/screenshots/long-press.png) | ![图标](docs/screenshots/icon-1024.png) |
 
+## 文档索引
+
+规范与平台要点都在 [`docs/`](docs/) 里，先读总纲，再按平台翻原文。
+
+| 入口 | 内容 |
+| --- | --- |
+| [跨平台开发与发布总纲](docs/cross-platform-release-plan.md) | 六个生态统一口径：时间表、身份与签名锚点、12 道发布闸门 |
+| [发版规范](docs/release-spec.md) | 版本号、CHANGELOG、提交信息、回归覆盖范围 |
+| [签名与覆盖升级](docs/signing-and-upgrade.md) | 证书固定、CI 密钥注入、覆盖安装验签 |
+| [凭据与令牌管理](docs/credentials-and-tokens.md) | PAT 权限、传递方式、泄露处置 |
+| [版本时间轴](docs/version-timeline.md) | 旧流水号与语义化版本号的对应 |
+| [docs 目录索引](docs/README.md) · [平台原文](docs/ecosystems/) | 阅读顺序；android / apple / windows / linux / web / harmonyos |
+| [个人主页维护指南](https://github.com/yangyang2857-rgb/yangyang2857-rgb.github.io/blob/main/docs/notes-guide.md) | 姊妹仓库：站点的笔记怎么写、怎么发 |
+
 ---
 
 ## 目录
@@ -175,14 +189,14 @@ JAVA_HOME=/path/to/jdk-17 ./test.sh
 ├── assets/
 │   └── COPYRIGHT.txt            # 署名信息（随 APK 打包，也用于版本内说明）
 ├── docs/
-│   ├── README.md                # docs 索引、阅读顺序与维护约定
-│   ├── 全生态开发与发布总纲.md  # 六平台整合总纲（三失效面 / 时间表 / 12 道闸门）
-│   ├── ecosystems/              # 六个平台各自的要点原文
-│   ├── 发版规范.md              # 版本号规则与发布纪律
-│   ├── 拾光OneStar_版本时间轴.md  # 历代版本与旧流水号对照
-│   ├── 签名与覆盖升级.md        # 证书固定、CI 注入与验签流程
-│   ├── 凭据与令牌管理.md        # PAT 类型与权限、传递方式、泄露处置
-│   └── screenshots/             # README 引用的截图
+│   ├── README.md                       # docs 索引、阅读顺序与维护约定
+│   ├── cross-platform-release-plan.md  # 六平台整合总纲（三失效面 / 时间表 / 12 道闸门）
+│   ├── ecosystems/                     # 六个平台各自的要点原文
+│   ├── release-spec.md                 # 版本号规则与发布纪律
+│   ├── version-timeline.md             # 历代版本与旧流水号对照
+│   ├── signing-and-upgrade.md          # 证书固定、CI 注入与验签流程
+│   ├── credentials-and-tokens.md       # PAT 类型与权限、传递方式、泄露处置
+│   └── screenshots/                    # README 引用的截图
 ├── java/com/yangyang2857rgb/onestar/
 │   ├── MainActivity.java        # 入口，手势/生命周期
 │   ├── StarFieldView.java       # 核心自绘视图（3036 行）
@@ -268,7 +282,7 @@ python3 tools/verify_apk_signature.py build/onestar-0.12.2-signed.apk
 
 ## 7. 版本与发版流程
 
-版本记录见 [CHANGELOG.md](CHANGELOG.md)，规则全文见 [docs/发版规范.md](docs/发版规范.md)，历代版本对照见 [docs/拾光OneStar_版本时间轴.md](docs/拾光OneStar_版本时间轴.md)。
+版本记录见 [CHANGELOG.md](CHANGELOG.md)，规则全文见 [docs/release-spec.md](docs/release-spec.md)，历代版本对照见 [docs/version-timeline.md](docs/version-timeline.md)。
 
 三条硬规则：
 
@@ -342,11 +356,11 @@ python3 tools/verify_apk_signature.py build/onestar-0.12.2-signed.apk
 | 文档 | 内容 |
 | --- | --- |
 | [CHANGELOG.md](CHANGELOG.md) | 逐版本变更记录与 `versionCode` 对照 |
-| [docs/发版规范.md](docs/发版规范.md) | SemVer 2.0.0 + Keep a Changelog + Conventional Commits + DORA 指标 + WCAG 2.2 的落地规则 |
-| [docs/拾光OneStar_版本时间轴.md](docs/拾光OneStar_版本时间轴.md) | 历代版本、旧流水号与语义化版本号的对应关系 |
-| [docs/签名与覆盖升级.md](docs/签名与覆盖升级.md) | 证书固定、CI Secret 注入、验签与排错 |
-| [docs/凭据与令牌管理.md](docs/凭据与令牌管理.md) | PAT 类型与最小权限、令牌传递方式、提交前自检与泄露处置 |
-| [docs/全生态开发与发布总纲.md](docs/全生态开发与发布总纲.md) | 六生态统一口径：全局时间表、身份与签名锚点、统一发布闸门 12 道、风险矩阵 |
+| [docs/release-spec.md](docs/release-spec.md) | SemVer 2.0.0 + Keep a Changelog + Conventional Commits + DORA 指标 + WCAG 2.2 的落地规则 |
+| [docs/version-timeline.md](docs/version-timeline.md) | 历代版本、旧流水号与语义化版本号的对应关系 |
+| [docs/signing-and-upgrade.md](docs/signing-and-upgrade.md) | 证书固定、CI Secret 注入、验签与排错 |
+| [docs/credentials-and-tokens.md](docs/credentials-and-tokens.md) | PAT 类型与最小权限、令牌传递方式、提交前自检与泄露处置 |
+| [docs/cross-platform-release-plan.md](docs/cross-platform-release-plan.md) | 六生态统一口径：全局时间表、身份与签名锚点、统一发布闸门 12 道、风险矩阵 |
 | [docs/README.md](docs/README.md) | docs 目录索引与阅读路径 |
 | [docs/ecosystems/](docs/ecosystems/) | 六个平台各自的完整要点原文（含签名命令与逐项自检清单） |
 | [LICENSE](LICENSE) | MIT |
@@ -355,11 +369,11 @@ python3 tools/verify_apk_signature.py build/onestar-0.12.2-signed.apk
 
 拾光 OneStar 同时维护 Android、Web、HarmonyOS、Apple、Windows、Linux 六个生态。六个平台的商店政策、SDK 门槛、签名链条差异很大，且**大部分约束是不可逆的**——包名改一次等于换一款应用，Linux 构建基线升一次等于永久放弃旧系统用户，macOS 漏掉公证等于用户下载后直接打不开。
 
-因此跨平台发布规则被整理成一套可执行的规范，放在 [`docs/`](docs/)，入口是 [全生态开发与发布总纲](docs/全生态开发与发布总纲.md)：
+因此跨平台发布规则被整理成一套可执行的规范，放在 [`docs/`](docs/)，入口是 [全生态开发与发布总纲](docs/cross-platform-release-plan.md)：
 
 | 文档 | 内容 | 什么时候看 |
 | --- | --- | --- |
-| [全生态开发与发布总纲](docs/全生态开发与发布总纲.md) | 六个生态放在一起时的统一口径：全局时间表、身份与签名锚点、跨平台共性矩阵、统一发布闸门 12 道、风险矩阵 | 排期、定锚点、发版前 |
+| [全生态开发与发布总纲](docs/cross-platform-release-plan.md) | 六个生态放在一起时的统一口径：全局时间表、身份与签名锚点、跨平台共性矩阵、统一发布闸门 12 道、风险矩阵 | 排期、定锚点、发版前 |
 | [docs 目录索引](docs/README.md) | 文档结构与阅读路径 | 第一次进 docs |
 | [docs/ecosystems/](docs/ecosystems/) | 六个平台各自的完整要点原文（含签名命令、逐项自检清单） | 需要具体命令或逐项核对 |
 

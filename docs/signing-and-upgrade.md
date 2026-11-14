@@ -104,4 +104,4 @@ python3 tools/verify_apk_signature.py build/onestar-0.12.2-signed.apk
 - 只适合自用、小范围体验、验证构建链
 - **不能上架应用商店**，也不适合对外分发
 - 正式分发必须换成自己的 release keystore（`ONESTAR_KS` / `ONESTAR_KS_PASS`），届时要接受一个现实：换证书意味着老用户卸载重装
-- 一旦决定换成 release 证书，就要同步更新本文与 `EXPECTED_SHA256`，并把 `MAJOR` 版本号递增（签名变更属于破坏性变更，见 `docs/发版规范.md`）
+- 一旦决定换成 release 证书，就要同步更新本文与 `EXPECTED_SHA256`，并把 `MAJOR` 版本号递增（签名变更属于破坏性变更，见 `docs/release-spec.md`）

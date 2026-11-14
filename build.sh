@@ -165,7 +165,7 @@ fi
 
 # ---------- 8. 准备签名证书 ----------
 # ONESTAR_KS_B64：把 keystore 以 base64 内联进环境变量，供 CI 从 Secret 注入。
-# 这样每次构建用的都是同一张证书，已装用户才能覆盖升级（见 docs/签名与覆盖升级.md）。
+# 这样每次构建用的都是同一张证书，已装用户才能覆盖升级（见 docs/signing-and-upgrade.md）。
 if [ -n "${ONESTAR_KS_B64:-}" ] && [ -z "${ONESTAR_KS:-}" ]; then
   ONESTAR_KS="$WORK/ci-signing.keystore"
   printf '%s' "$ONESTAR_KS_B64" | base64 -d > "$ONESTAR_KS"

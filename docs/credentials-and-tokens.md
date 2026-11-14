@@ -101,7 +101,7 @@ token.txt
 
 - 签名 keystore 与口令只存在于 GitHub Actions Secrets（`KEYSTORE_BASE64`、`KEYSTORE_PASSWORD`、`KEY_ALIAS`、`KEY_PASSWORD`），构建时临时还原、用完即弃，不落仓库、不进构建产物。
 - workflow 中的 `${{ secrets.* }}` **不会**被打印；一旦用 `echo` 或 `set -x` 输出，会被 GitHub 自动打码，但仍应在日志审查中确认没有 `***` 之外的可疑明文。
-- 验签流程与证书固定细节见 [签名与覆盖升级.md](签名与覆盖升级.md)。
+- 验签流程与证书固定细节见 [signing-and-upgrade.md](signing-and-upgrade.md)。
 
 ## 7. 事故与踩坑记录
 
@@ -112,6 +112,6 @@ token.txt
 
 ## 8. 与发版规范的关系
 
-- 版本号、CHANGELOG、提交信息格式：见 [发版规范.md](发版规范.md)
-- 证书固定、验签与覆盖安装失败排查：见 [签名与覆盖升级.md](签名与覆盖升级.md)
-- 跨平台统一口径与发布闸门：见 [全生态开发与发布总纲.md](全生态开发与发布总纲.md)
+- 版本号、CHANGELOG、提交信息格式：见 [release-spec.md](release-spec.md)
+- 证书固定、验签与覆盖安装失败排查：见 [signing-and-upgrade.md](signing-and-upgrade.md)
+- 跨平台统一口径与发布闸门：见 [cross-platform-release-plan.md](cross-platform-release-plan.md)

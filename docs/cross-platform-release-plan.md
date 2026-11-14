@@ -346,7 +346,7 @@ deep-research 联网核对后，与六份源文档存在以下差异，本文已
 | 12 🔄 | Windows 10 "ESU 已全部到期" | 消费者 ESU 至 2026-10-13 结束，**商业/企业 ESU 最长可续至 2028-01**，教育版另有期限 | 已改为分档表述，并提示企业向分发勿按"全部无补丁"判断 |
 | 13 🔄 | "Xcode 27 已进入 RC" | 2026-09-09 提供 RC，现已正式发布（GA） | 已改为已正式发布 |
 | 14 🔄 | Wear OS "必须同时提供 32 位与 64 位" | 官方原文：含原生代码的应用与更新"**除提供 32 位版本外，还必须提供 64 位版本**"，且不改变 32 位支持政策 | 已改回官方句式，明确仅 64 位不违规 |
-| 15 🔄 | README 工程结构树 `docs/` 只列 3 份文档 | 实际另有 `docs/README.md`、`全生态开发与发布总纲.md`、`ecosystems/`（6 份），索引表已更新而结构树漏改 | 已补齐三个节点，与索引表对齐 |
+| 15 🔄 | README 工程结构树 `docs/` 只列 3 份文档 | 实际另有 `docs/README.md`、`cross-platform-release-plan.md`、`ecosystems/`（6 份），索引表已更新而结构树漏改 | 已补齐三个节点，与索引表对齐 |
 
 **核实时效性说明**：以上核对基准为 2026-11-10。平台政策按季度变化，建议每季度复跑一次本节的四项时效检查（Android target API、Apple SDK 门槛、Windows App SDK 版本、HarmonyOS 上架规则），并加查三项**易漂移项**：**Chrome 发布周期、OWASP Top 10 版本、WCAG 版本**。纪律：凡"某月某日"的断言必须有官方原文出处；无出处的一律写成"某月起"或标注 ⚠️ 推断，不得为了表格整齐补日期。
 
@@ -356,12 +356,12 @@ deep-research 联网核对后，与六份源文档存在以下差异，本文已
 
 | 生态 | 原文 | 本文对应节 |
 | --- | --- | --- |
-| Android | [安卓全生态开发与发布要点.md](ecosystems/安卓全生态开发与发布要点.md) | §4.1 |
-| Web | [Web全生态开发与发布要点.md](ecosystems/Web全生态开发与发布要点.md) | §4.2 |
-| HarmonyOS | [鸿蒙全生态开发与发布要点.md](ecosystems/鸿蒙全生态开发与发布要点.md) | §4.3 |
-| Apple | [苹果全生态开发与发布要点.md](ecosystems/苹果全生态开发与发布要点.md) | §4.4 |
-| Windows | [Windows全生态开发与发布要点.md](ecosystems/Windows全生态开发与发布要点.md) | §4.5 |
-| Linux | [Linux全生态开发与发布要点.md](ecosystems/Linux全生态开发与发布要点.md) | §4.6 |
+| Android | [android.md](ecosystems/android.md) | §4.1 |
+| Web | [web.md](ecosystems/web.md) | §4.2 |
+| HarmonyOS | [harmonyos.md](ecosystems/harmonyos.md) | §4.3 |
+| Apple | [apple.md](ecosystems/apple.md) | §4.4 |
+| Windows | [windows.md](ecosystems/windows.md) | §4.5 |
+| Linux | [linux.md](ecosystems/linux.md) | §4.6 |
 
 ---
 

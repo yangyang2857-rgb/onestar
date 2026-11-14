@@ -56,13 +56,13 @@ Android 会判定为降级、拒绝覆盖安装。所以这里把两套编号彻
 - `build.sh` 支持 `ONESTAR_KS_B64`：keystore 可由 CI 从 Secret 内联注入，不再每次现场 `keytool -genkeypair` 生成新证书，从根上解决「不同版本证书不一致、无法覆盖升级」
 - 新增 `tools/verify_apk_signature.py`：解析 APK 的 v1 签名块，打印证书主题与 SHA-256，并与仓库约定的固定指纹比对；固定证书构建时指纹漂移会让构建失败，一次性 debug 证书只打印不阻断
 - CI 新增 `Restore signing keystore`（还原固定证书）与 `Verify signing certificate`（验签）两步；未配置 Secret 时输出显式警告，提示该产物的覆盖升级能力不可用
-- 新增 `docs/签名与覆盖升级.md`：签名约定、Secret 配置、验签与排错、安全边界
+- 新增 `docs/signing-and-upgrade.md`：签名约定、Secret 配置、验签与排错、安全边界
 - 新增模拟器回归：`tools/ci/regression.sh` 用基线包（`v0.12.2-rc1`）做覆盖安装、冷启动、字号三档、四向旋转、8 语言冷启动、崩溃日志与节点越界检查，证据落 `build/regression`；`.github/workflows/regression.yml` 负责起 API 35 的 x86_64 模拟器跑它，失败判红、主观项只发 warning
 - 新增 `tools/ci/check_bounds.py`：解析 `uiautomator dump` 的节点矩形，检查是否越出屏幕；只覆盖系统控件层，Canvas 自绘层仍需看截图
-- 回归替代范围写进 `docs/发版规范.md` §3：覆盖安装、朝向、字号、语言、崩溃与控件越界由 CI 判，视觉观感/刘海遮挡/TalkBack 播报/厂商字体差异仍须人看，不得因 CI 绿填 ✅
+- 回归替代范围写进 `docs/release-spec.md` §3：覆盖安装、朝向、字号、语言、崩溃与控件越界由 CI 判，视觉观感/刘海遮挡/TalkBack 播报/厂商字体差异仍须人看，不得因 CI 绿填 ✅
 - README 重写扩充：功能一览、AGP 职责对照、安装与覆盖升级、数据与隐私、FAQ、Roadmap、文档索引
 - 多语言抽检从模拟器层挪到单测层：API 30 镜像没有 `cmd locale set-app-locales`（该命令 API 33 才引入），原来的设备层语言抽检只能跳过并记一条 warning，等于每次回归都带一个不会消失的噪音。改为分工——文案表由 `test/I18nTableTest` 全量判（15 语言 × 全行非空、占位符对齐、语言判定、非中日语言漏汉字、RTL 标志），跨类调用点漏翻由 `I18nTest` 判，两者随 build job 每次提交都跑；设备层只保留「切语言后能否启动、布局是否越界」，且在镜像支持 `cmd locale` 时才做，不支持时输出 `[note]` 说明归属而不发警告
-- `docs/发版规范.md` 补「多语言与 RTL 的三层分工」表，并写明 `supportsRtl=false` 是有意设计：主视觉为 Canvas 自绘，系统级 RTL 镜像会连坐标一起翻转，阿拉伯语/维吾尔语文本方向由 `I18n.visual()` 走 `java.text.Bidi.reorderVisually` 手动处理
+- `docs/release-spec.md` 补「多语言与 RTL 的三层分工」表，并写明 `supportsRtl=false` 是有意设计：主视觉为 Canvas 自绘，系统级 RTL 镜像会连坐标一起翻转，阿拉伯语/维吾尔语文本方向由 `I18n.visual()` 走 `java.text.Bidi.reorderVisually` 手动处理
 
 ### 1.0.0 — 计划
 

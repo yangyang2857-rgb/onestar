@@ -26,6 +26,20 @@ straight from the command line.
 | --- | --- | --- |
 | ![Star map](docs/screenshots/star-map.png) | ![Star note](docs/screenshots/long-press.png) | ![Icon](docs/screenshots/icon-1024.png) |
 
+## Documentation
+
+The specs live offline under [`docs/`](docs/) — read the cross-platform plan first, then the per-platform notes.
+
+| Entry | Covers |
+| --- | --- |
+| [Cross-platform release plan](docs/cross-platform-release-plan.md) | Six ecosystems in one voice: timeline, identity and signing anchors, 12 release gates |
+| [Release spec](docs/release-spec.md) | Versioning, CHANGELOG, commit messages, regression scope |
+| [Signing and upgrade](docs/signing-and-upgrade.md) | Certificate pinning, CI secret injection, verifying an overwrite install |
+| [Credentials and tokens](docs/credentials-and-tokens.md) | PAT scopes, transfer, leak handling |
+| [Version timeline](docs/version-timeline.md) | Legacy build numbers mapped to semantic versions |
+| [docs index](docs/README.md) · [per-platform notes](docs/ecosystems/) | Reading order; android / apple / windows / linux / web / harmonyos |
+| [Personal site docs](https://github.com/yangyang2857-rgb/yangyang2857-rgb.github.io/blob/main/docs/notes-guide.md) | Sister repo: how the site's notes are written and published |
+
 ---
 
 ## Contents
@@ -201,14 +215,14 @@ the main reason this project can evolve by hand for a long time without collapsi
 ├── assets/
 │   └── COPYRIGHT.txt            # attribution (packed into the APK, also used for in-version notes)
 ├── docs/
-│   ├── README.md                # docs index, reading order and maintenance conventions
-│   ├── 全生态开发与发布总纲.md  # six-platform master plan (failure surfaces / timeline / 12 gates)
-│   ├── ecosystems/              # per-platform source notes
-│   ├── 发版规范.md              # versioning rules and release discipline
-│   ├── 拾光OneStar_版本时间轴.md  # version history and legacy build-number mapping
-│   ├── 签名与覆盖升级.md        # certificate pinning, CI injection and verification
-│   ├── 凭据与令牌管理.md        # PAT types and scopes, transfer, leak handling
-│   └── screenshots/             # screenshots referenced by this README
+│   ├── README.md                       # docs index, reading order and maintenance conventions
+│   ├── cross-platform-release-plan.md  # six-platform master plan (failure surfaces / timeline / 12 gates)
+│   ├── ecosystems/                     # per-platform source notes
+│   ├── release-spec.md                 # versioning rules and release discipline
+│   ├── version-timeline.md             # version history and legacy build-number mapping
+│   ├── signing-and-upgrade.md          # certificate pinning, CI injection and verification
+│   ├── credentials-and-tokens.md       # PAT types and scopes, transfer, leak handling
+│   └── screenshots/                    # screenshots referenced by this README
 ├── java/com/yangyang2857rgb/onestar/
 │   ├── MainActivity.java        # entry point, gestures, lifecycle
 │   ├── StarFieldView.java       # core custom view (3036 lines)
@@ -321,8 +335,8 @@ installed as an upgrade.
 ## 7. Versioning and release
 
 Version history lives in [CHANGELOG.md](CHANGELOG.md), the full rules in
-[docs/发版规范.md](docs/发版规范.md), and the historical mapping in
-[docs/拾光OneStar_版本时间轴.md](docs/拾光OneStar_版本时间轴.md).
+[docs/release-spec.md](docs/release-spec.md), and the historical mapping in
+[docs/version-timeline.md](docs/version-timeline.md).
 
 Three hard rules:
 
@@ -427,11 +441,11 @@ continuity.
 | Document | Contents |
 | --- | --- |
 | [CHANGELOG.md](CHANGELOG.md) | Per-version change log with `versionCode` mapping |
-| [docs/发版规范.md](docs/发版规范.md) | Practical rules for SemVer 2.0.0 + Keep a Changelog + Conventional Commits + DORA metrics + WCAG 2.2 |
-| [docs/拾光OneStar_版本时间轴.md](docs/拾光OneStar_版本时间轴.md) | Version history and the legacy-to-semantic build-number mapping |
-| [docs/签名与覆盖升级.md](docs/签名与覆盖升级.md) | Certificate pinning, CI secret injection, verification and troubleshooting |
-| [docs/凭据与令牌管理.md](docs/凭据与令牌管理.md) | PAT types and least privilege, token transfer, pre-commit self-checks and leak handling |
-| [docs/全生态开发与发布总纲.md](docs/全生态开发与发布总纲.md) | One voice across six ecosystems: global timeline, identity and signing anchors, 12 unified release gates, risk matrix |
+| [docs/release-spec.md](docs/release-spec.md) | Practical rules for SemVer 2.0.0 + Keep a Changelog + Conventional Commits + DORA metrics + WCAG 2.2 |
+| [docs/version-timeline.md](docs/version-timeline.md) | Version history and the legacy-to-semantic build-number mapping |
+| [docs/signing-and-upgrade.md](docs/signing-and-upgrade.md) | Certificate pinning, CI secret injection, verification and troubleshooting |
+| [docs/credentials-and-tokens.md](docs/credentials-and-tokens.md) | PAT types and least privilege, token transfer, pre-commit self-checks and leak handling |
+| [docs/cross-platform-release-plan.md](docs/cross-platform-release-plan.md) | One voice across six ecosystems: global timeline, identity and signing anchors, 12 unified release gates, risk matrix |
 | [docs/README.md](docs/README.md) | docs index and reading paths |
 | [docs/ecosystems/](docs/ecosystems/) | Full source notes per platform, including signing commands and per-item checklists |
 | [LICENSE](LICENSE) | MIT |
@@ -446,11 +460,11 @@ will not open.
 
 So the cross-platform rules are written as something executable, kept in [`docs/`](docs/), entered
 through the
-[six-ecosystem master plan](docs/全生态开发与发布总纲.md):
+[six-ecosystem master plan](docs/cross-platform-release-plan.md):
 
 | Document | Contents | When to read |
 | --- | --- | --- |
-| [Six-ecosystem master plan](docs/全生态开发与发布总纲.md) | One voice across the six ecosystems: global timeline, identity and signing anchors, cross-platform matrix, 12 unified release gates, risk matrix | Scheduling, setting anchors, before a release |
+| [Six-ecosystem master plan](docs/cross-platform-release-plan.md) | One voice across the six ecosystems: global timeline, identity and signing anchors, cross-platform matrix, 12 unified release gates, risk matrix | Scheduling, setting anchors, before a release |
 | [docs index](docs/README.md) | Document structure and reading paths | First time in `docs` |
 | [docs/ecosystems/](docs/ecosystems/) | Full per-platform notes, including signing commands and item-by-item checklists | When you need exact commands or a checklist |
 
