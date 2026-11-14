@@ -106,9 +106,9 @@ JAVA_HOME=/path/to/jdk-17 ./test.sh
 ├── assets/
 │   └── COPYRIGHT.txt            # 署名信息（随 APK 打包，也用于版本内说明）
 ├── docs/
-│   ├── 发版规范.md              # 版本号规则与发布纪律
-│   ├── 拾光OneStar_版本时间轴.md  # 历代版本与旧流水号对照
-│   └── screenshots/             # README 引用的截图
+│   ├── release-spec.md      # 版本号规则与发布纪律
+│   ├── version-timeline.md  # 历代版本与旧流水号对照
+│   └── screenshots/         # README 引用的截图
 ├── java/com/yangyang2857rgb/onestar/
 │   ├── MainActivity.java        # 入口，手势/生命周期
 │   ├── StarFieldView.java       # 核心自绘视图（3036 行）
@@ -165,7 +165,7 @@ Android 15 起部分设备使用 16 KB 内存页，未按 16 KB 对齐的 `.so` 
 
 版本记录见 [CHANGELOG.md](CHANGELOG.md)。可直接安装的 APK 放在仓库的 **Releases** 页面，源码仓库内不存放二进制。
 
-发版纪律与版本号规则见 [docs/发版规范.md](docs/发版规范.md)；历代版本、旧流水号与语义化版本号的对应关系见 [docs/拾光OneStar_版本时间轴.md](docs/拾光OneStar_版本时间轴.md)。
+发版纪律与版本号规则见 [docs/release-spec.md](docs/release-spec.md)；历代版本、旧流水号与语义化版本号的对应关系见 [docs/version-timeline.md](docs/version-timeline.md)。
 
 ## 9. 许可
 
